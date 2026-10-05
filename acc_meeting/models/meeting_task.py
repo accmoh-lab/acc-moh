@@ -32,6 +32,10 @@ class AccMeetingTask(models.Model):
         'res.users', string='Responsible', required=True, tracking=True,
         domain=[('share', '=', False)],
     )
+    department_id = fields.Many2one(
+        'hr.department', string='Department', compute='_compute_department_id', store=True,
+        help="Department of the responsible person's employee record.",
+    )
     priority = fields.Selection(
         [('0', 'Normal'), ('1', 'Important'), ('2', 'Urgent')], default='0', required=True,
     )
@@ -72,6 +76,12 @@ class AccMeetingTask(models.Model):
     # ------------------------------------------------------------------
     # Computes
     # ------------------------------------------------------------------
+    @api.depends('assignee_id.employee_ids.department_id')
+    def _compute_department_id(self):
+        for task in self:
+            employee = task.assignee_id.sudo().employee_ids[:1]
+            task.department_id = employee.department_id
+
     @api.depends('date_deadline', 'state')
     def _compute_is_overdue(self):
         today = fields.Date.context_today(self)

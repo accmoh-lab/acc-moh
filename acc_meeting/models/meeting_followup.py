@@ -18,6 +18,7 @@ class AccMeetingFollowup(models.Model):
     task_id = fields.Many2one('acc.meeting.task', string='Action Item', required=True, ondelete='cascade')
     origin_meeting_id = fields.Many2one(related='task_id.meeting_id', string='Raised in', store=True)
     assignee_id = fields.Many2one(related='task_id.assignee_id', string='Responsible', store=True)
+    department_id = fields.Many2one(related='task_id.department_id', string='Department', store=True)
     date_deadline = fields.Date(related='task_id.date_deadline', string='Due Date')
     task_state = fields.Selection(related='task_id.state', string='Current Status')
 

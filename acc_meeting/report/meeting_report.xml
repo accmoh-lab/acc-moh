@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_acc_meeting" model="ir.actions.report">
+        <field name="name">Meeting Minutes (PDF)</field>
+        <field name="model">acc.meeting</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">acc_meeting.report_acc_meeting_document</field>
+        <field name="report_file">acc_meeting.report_acc_meeting_document</field>
+        <field name="print_report_name">'Minutes - %s' % (object.reference or '')</field>
+        <field name="binding_model_id" ref="model_acc_meeting"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_acc_meeting_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2><span t-field="o.name"/></h2>
+                        <p class="text-muted"><span t-field="o.reference"/> — <span t-field="o.meeting_type_id"/></p>
+
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td><strong>Date</strong></td>
+                                <td><span t-field="o.date_start"/> → <span t-field="o.date_stop"/></td>
+                                <td><strong>Location</strong></td>
+                                <td><span t-field="o.location"/></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Chairperson</strong></td>
+                                <td><span t-field="o.chairperson_id"/></td>
+                                <td><strong>Minute Taker</strong></td>
+                                <td><span t-field="o.secretary_id"/></td>
+                            </tr>
+                        </table>
+
+                        <t t-if="o.objective">
+                            <h4>Objective</h4>
+                            <p><span t-field="o.objective"/></p>
+                        </t>
+
+                        <h4>Attendees</h4>
+                        <table class="table table-sm">
+                            <thead><tr><th>Name</th><th>Attendance</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="o.attendee_ids" t-as="a">
+                                    <td><span t-field="a.partner_id"/></td>
+                                    <td><span t-field="a.attendance"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h4>Agenda</h4>
+                        <table class="table table-sm">
+                            <thead><tr><th>Topic</th><th>Presenter</th><th>Outcome / Decision</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="o.agenda_line_ids" t-as="line">
+                                    <td><span t-field="line.name"/></td>
+                                    <td><span t-field="line.presenter_id"/></td>
+                                    <td><span t-field="line.outcome"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <t t-if="o.followup_ids">
+                            <h4>Review of Previous Action Items</h4>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Action Item</th><th>Responsible</th><th>Result</th>
+                                        <th>Deviation Reason</th><th>New Due Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.followup_ids" t-as="f">
+                                        <td><span t-field="f.task_id.name"/></td>
+                                        <td><span t-field="f.assignee_id"/></td>
+                                        <td><span t-field="f.review_state"/></td>
+                                        <td><span t-field="f.deviation_reason_id"/></td>
+                                        <td><span t-field="f.new_due_date"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+
+                        <t t-if="o.minutes">
+                            <h4>Minutes</h4>
+                            <div><span t-field="o.minutes"/></div>
+                        </t>
+
+                        <h4>Action Items</h4>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr><th>Item</th><th>Type</th><th>Responsible</th><th>Due Date</th><th>Priority</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.task_ids" t-as="t">
+                                    <td><span t-field="t.name"/></td>
+                                    <td><span t-field="t.task_type"/></td>
+                                    <td><span t-field="t.assignee_id"/></td>
+                                    <td><span t-field="t.date_deadline"/></td>
+                                    <td><span t-field="t.priority"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

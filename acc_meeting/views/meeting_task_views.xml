@@ -10,6 +10,7 @@
                 <field name="task_type" optional="show"/>
                 <field name="meeting_id" optional="show"/>
                 <field name="assignee_id" widget="many2one_avatar_user"/>
+                <field name="department_id" optional="hide"/>
                 <field name="date_deadline"/>
                 <field name="delay_days" optional="show" string="Days Late"/>
                 <field name="priority" optional="show"/>
@@ -148,6 +149,7 @@
                 <filter name="type_issue" string="Issues" domain="[('task_type', '=', 'issue')]"/>
                 <group>
                     <filter name="group_assignee" string="Responsible" context="{'group_by': 'assignee_id'}"/>
+                    <filter name="group_department" string="Department" context="{'group_by': 'department_id'}"/>
                     <filter name="group_meeting" string="Meeting" context="{'group_by': 'meeting_id'}"/>
                     <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
                     <filter name="group_type" string="Type" context="{'group_by': 'task_type'}"/>

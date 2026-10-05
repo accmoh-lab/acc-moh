@@ -13,6 +13,17 @@
     <menuitem id="menu_acc_meeting_task_all" name="All Action Items" parent="menu_acc_meeting_tasks"
               action="action_acc_meeting_task" sequence="20"/>
 
+    <menuitem id="menu_acc_meeting_dashboard" name="Dashboard" parent="menu_acc_meeting_root"
+              sequence="70"/>
+    <menuitem id="menu_acc_dashboard_department" name="Performance by Department"
+              parent="menu_acc_meeting_dashboard" action="action_acc_dashboard_department" sequence="10"/>
+    <menuitem id="menu_acc_dashboard_overdue" name="Overdue Items"
+              parent="menu_acc_meeting_dashboard" action="action_acc_dashboard_overdue" sequence="20"/>
+    <menuitem id="menu_acc_dashboard_escalated" name="Escalated Items"
+              parent="menu_acc_meeting_dashboard" action="action_acc_dashboard_escalated" sequence="30"/>
+    <menuitem id="menu_acc_dashboard_meeting_type" name="Completion by Meeting Type"
+              parent="menu_acc_meeting_dashboard" action="action_acc_dashboard_meeting_type" sequence="40"/>
+
     <menuitem id="menu_acc_meeting_reporting" name="Reporting" parent="menu_acc_meeting_root"
               sequence="80" groups="group_meeting_manager"/>
     <menuitem id="menu_acc_meeting_deviation" name="Deviation Analysis"

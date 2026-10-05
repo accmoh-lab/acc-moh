@@ -37,6 +37,7 @@
                 <filter name="date" string="Meeting Date" date="meeting_date"/>
                 <group>
                     <filter name="group_reason" string="Deviation Reason" context="{'group_by': 'deviation_reason_id'}"/>
+                    <filter name="group_department" string="Department" context="{'group_by': 'department_id'}"/>
                     <filter name="group_assignee" string="Responsible" context="{'group_by': 'assignee_id'}"/>
                     <filter name="group_type" string="Meeting Type" context="{'group_by': 'meeting_type_id'}"/>
                     <filter name="group_result" string="Review Result" context="{'group_by': 'review_state'}"/>

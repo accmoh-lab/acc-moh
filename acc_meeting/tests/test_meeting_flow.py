@@ -129,3 +129,12 @@ class TestMeetingFlow(TransactionCase):
         found = self.env['acc.meeting.task'].search([('is_overdue', '=', True)])
         self.assertIn(late, found)
         self.assertNotIn(on_time, found)
+
+    def test_department_from_employee(self):
+        department = self.env['hr.department'].create({'name': 'Finance'})
+        self.env['hr.employee'].create({
+            'name': 'Meeting User A', 'user_id': self.user_a.id, 'department_id': department.id,
+        })
+        meeting = self._new_meeting(self.type_management)
+        task = self._new_task(meeting)
+        self.assertEqual(task.department_id, department)

@@ -18,7 +18,7 @@ Meetings & Action Follow-up
 """,
     'author': 'ACC',
     'license': 'LGPL-3',
-    'depends': ['base', 'mail', 'calendar'],
+    'depends': ['base', 'mail', 'calendar', 'hr'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
@@ -31,6 +31,8 @@ Meetings & Action Follow-up
         'views/meeting_task_views.xml',
         'views/meeting_followup_views.xml',
         'views/config_views.xml',
+        'views/dashboard_views.xml',
+        'report/meeting_report.xml',
         'wizard/task_escalate_views.xml',
         'views/menus.xml',
     ],
