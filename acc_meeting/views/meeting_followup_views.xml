@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_acc_meeting_followup_list" model="ir.ui.view">
+        <field name="name">acc.meeting.followup.list</field>
+        <field name="model">acc.meeting.followup</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0"
+                  decoration-danger="review_state in ('delayed', 'cancelled')"
+                  decoration-success="review_state == 'completed'">
+                <field name="meeting_id"/>
+                <field name="meeting_date"/>
+                <field name="meeting_type_id"/>
+                <field name="task_id"/>
+                <field name="origin_meeting_id" optional="hide"/>
+                <field name="assignee_id" widget="many2one_avatar_user"/>
+                <field name="review_state"/>
+                <field name="deviation_reason_id"/>
+                <field name="new_due_date"/>
+                <field name="deviation_notes" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_followup_search" model="ir.ui.view">
+        <field name="name">acc.meeting.followup.search</field>
+        <field name="model">acc.meeting.followup</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="task_id"/>
+                <field name="meeting_id"/>
+                <field name="assignee_id"/>
+                <field name="deviation_reason_id"/>
+                <filter name="deviations" string="Deviations (delayed / cancelled)"
+                        domain="[('review_state', 'in', ('delayed', 'cancelled'))]"/>
+                <filter name="completed" string="Completed" domain="[('review_state', '=', 'completed')]"/>
+                <separator/>
+                <filter name="date" string="Meeting Date" date="meeting_date"/>
+                <group>
+                    <filter name="group_reason" string="Deviation Reason" context="{'group_by': 'deviation_reason_id'}"/>
+                    <filter name="group_assignee" string="Responsible" context="{'group_by': 'assignee_id'}"/>
+                    <filter name="group_type" string="Meeting Type" context="{'group_by': 'meeting_type_id'}"/>
+                    <filter name="group_result" string="Review Result" context="{'group_by': 'review_state'}"/>
+                    <filter name="group_month" string="Month" context="{'group_by': 'meeting_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_followup_pivot" model="ir.ui.view">
+        <field name="name">acc.meeting.followup.pivot</field>
+        <field name="model">acc.meeting.followup</field>
+        <field name="arch" type="xml">
+            <pivot string="Deviation Analysis">
+                <field name="deviation_reason_id" type="row"/>
+                <field name="meeting_type_id" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_followup_graph" model="ir.ui.view">
+        <field name="name">acc.meeting.followup.graph</field>
+        <field name="model">acc.meeting.followup</field>
+        <field name="arch" type="xml">
+            <graph string="Deviation Analysis" type="bar">
+                <field name="deviation_reason_id"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_acc_meeting_deviation" model="ir.actions.act_window">
+        <field name="name">Deviation Analysis</field>
+        <field name="res_model">acc.meeting.followup</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="view_acc_meeting_followup_search"/>
+        <field name="context">{'search_default_deviations': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No deviations recorded yet</p>
+            <p>Deviations appear here when previous action items are reviewed as delayed or
+               cancelled in a follow-up meeting.</p>
+        </field>
+    </record>
+</odoo>

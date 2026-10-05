@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_acc_meeting_type_list" model="ir.ui.view">
+        <field name="name">acc.meeting.type.list</field>
+        <field name="model">acc.meeting.type</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="level"/>
+                <field name="name"/>
+                <field name="default_duration" widget="float_time"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_acc_meeting_type" model="ir.actions.act_window">
+        <field name="name">Meeting Types</field>
+        <field name="res_model">acc.meeting.type</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <record id="view_acc_meeting_deviation_reason_list" model="ir.ui.view">
+        <field name="name">acc.meeting.deviation.reason.list</field>
+        <field name="model">acc.meeting.deviation.reason</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_acc_meeting_deviation_reason" model="ir.actions.act_window">
+        <field name="name">Deviation Reasons</field>
+        <field name="res_model">acc.meeting.deviation.reason</field>
+        <field name="view_mode">list</field>
+    </record>
+</odoo>

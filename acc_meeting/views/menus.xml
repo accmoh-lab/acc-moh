@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_acc_meeting_root" name="Meetings" sequence="40"
+              groups="group_meeting_user"/>
+
+    <menuitem id="menu_acc_meeting" name="Meetings" parent="menu_acc_meeting_root"
+              action="action_acc_meeting" sequence="10"/>
+
+    <menuitem id="menu_acc_meeting_tasks" name="Action Items" parent="menu_acc_meeting_root"
+              sequence="20"/>
+    <menuitem id="menu_acc_meeting_task_my" name="My Action Items" parent="menu_acc_meeting_tasks"
+              action="action_acc_meeting_task_my" sequence="10"/>
+    <menuitem id="menu_acc_meeting_task_all" name="All Action Items" parent="menu_acc_meeting_tasks"
+              action="action_acc_meeting_task" sequence="20"/>
+
+    <menuitem id="menu_acc_meeting_reporting" name="Reporting" parent="menu_acc_meeting_root"
+              sequence="80" groups="group_meeting_manager"/>
+    <menuitem id="menu_acc_meeting_deviation" name="Deviation Analysis"
+              parent="menu_acc_meeting_reporting" action="action_acc_meeting_deviation" sequence="10"/>
+
+    <menuitem id="menu_acc_meeting_config" name="Configuration" parent="menu_acc_meeting_root"
+              sequence="90" groups="group_meeting_manager"/>
+    <menuitem id="menu_acc_meeting_type" name="Meeting Types" parent="menu_acc_meeting_config"
+              action="action_acc_meeting_type" sequence="10"/>
+    <menuitem id="menu_acc_meeting_deviation_reason" name="Deviation Reasons"
+              parent="menu_acc_meeting_config" action="action_acc_meeting_deviation_reason" sequence="20"/>
+</odoo>

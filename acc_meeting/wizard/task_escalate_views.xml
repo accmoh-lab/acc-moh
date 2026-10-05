@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_acc_meeting_task_escalate_form" model="ir.ui.view">
+        <field name="name">acc.meeting.task.escalate.form</field>
+        <field name="model">acc.meeting.task.escalate</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="task_id"/>
+                    <field name="min_level" invisible="1"/>
+                    <field name="meeting_type_id" options="{'no_create': True}"
+                           domain="[('level', '&gt;', min_level)]"/>
+                    <field name="reason" placeholder="Why does this need a higher-level decision?"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Escalate" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

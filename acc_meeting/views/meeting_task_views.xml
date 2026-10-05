@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_acc_meeting_task_list" model="ir.ui.view">
+        <field name="name">acc.meeting.task.list</field>
+        <field name="model">acc.meeting.task</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="is_overdue" decoration-muted="state in ('done', 'cancelled')"
+                  decoration-warning="state == 'escalated'">
+                <field name="name"/>
+                <field name="task_type" optional="show"/>
+                <field name="meeting_id" optional="show"/>
+                <field name="assignee_id" widget="many2one_avatar_user"/>
+                <field name="date_deadline"/>
+                <field name="delay_days" optional="show" string="Days Late"/>
+                <field name="priority" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'in_progress'"
+                       decoration-warning="state == 'escalated'"
+                       decoration-success="state == 'done'"/>
+                <field name="deviation_reason_id" optional="show"/>
+                <field name="postponement_count" optional="hide"/>
+                <field name="is_overdue" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_task_form" model="ir.ui.view">
+        <field name="name">acc.meeting.task.form</field>
+        <field name="model">acc.meeting.task</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_start" string="Start" type="object" class="btn-primary"
+                            invisible="state != 'open'"/>
+                    <button name="action_done" string="Mark as Done" type="object" class="btn-primary"
+                            invisible="state not in ('open', 'in_progress', 'escalated')"/>
+                    <button name="action_open_escalate_wizard" string="Escalate" type="object"
+                            invisible="state not in ('open', 'in_progress')"/>
+                    <button name="action_resolve_escalation" string="Resolve Escalation" type="object"
+                            invisible="state != 'escalated'"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state in ('done', 'cancelled')"/>
+                    <button name="action_reopen" string="Reopen" type="object"
+                            invisible="state not in ('done', 'cancelled')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="open,in_progress,done"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Overdue" bg_color="text-bg-danger"
+                            invisible="not is_overdue"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Action item title"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="task_type"/>
+                            <field name="assignee_id" widget="many2one_avatar_user"/>
+                            <field name="priority"/>
+                            <field name="meeting_id"/>
+                        </group>
+                        <group>
+                            <field name="date_deadline"/>
+                            <field name="original_deadline"/>
+                            <field name="date_done" invisible="not date_done"/>
+                            <field name="delay_days" invisible="delay_days == 0"/>
+                            <field name="is_overdue" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="description"/>
+                        </page>
+                        <page string="Deviation" name="deviation">
+                            <group>
+                                <group>
+                                    <field name="deviation_reason_id" options="{'no_create': True}"/>
+                                    <field name="postponement_count"/>
+                                </group>
+                                <group>
+                                    <field name="deviation_notes"/>
+                                </group>
+                            </group>
+                            <field name="followup_ids" readonly="1">
+                                <list>
+                                    <field name="meeting_id"/>
+                                    <field name="meeting_date"/>
+                                    <field name="review_state"/>
+                                    <field name="deviation_reason_id"/>
+                                    <field name="new_due_date"/>
+                                    <field name="deviation_notes"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Escalation" name="escalation" invisible="not escalated_to_type_id">
+                            <group>
+                                <field name="escalated_to_type_id"/>
+                                <field name="escalation_date"/>
+                                <field name="escalation_reason"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_task_kanban" model="ir.ui.view">
+        <field name="name">acc.meeting.task.kanban</field>
+        <field name="model">acc.meeting.task</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" records_draggable="false" group_create="false"
+                    quick_create="false">
+                <field name="is_overdue"/>
+                <templates>
+                    <t t-name="card">
+                        <field name="name" class="fw-bold fs-5"/>
+                        <field name="meeting_id" class="text-muted"/>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <field name="date_deadline" widget="remaining_days"
+                                   invisible="state in ('done', 'cancelled')"/>
+                            <field name="assignee_id" widget="many2one_avatar_user"/>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_task_search" model="ir.ui.view">
+        <field name="name">acc.meeting.task.search</field>
+        <field name="model">acc.meeting.task</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="assignee_id"/>
+                <field name="meeting_id"/>
+                <field name="deviation_reason_id"/>
+                <filter name="my_tasks" string="My Items" domain="[('assignee_id', '=', uid)]"/>
+                <separator/>
+                <filter name="open" string="Open" domain="[('state', 'in', ('open', 'in_progress'))]"/>
+                <filter name="overdue" string="Overdue" domain="[('is_overdue', '=', True)]"/>
+                <filter name="escalated" string="Escalated" domain="[('state', '=', 'escalated')]"/>
+                <filter name="done" string="Done" domain="[('state', '=', 'done')]"/>
+                <filter name="postponed" string="Postponed" domain="[('postponement_count', '&gt;', 0)]"/>
+                <separator/>
+                <filter name="type_task" string="Tasks" domain="[('task_type', '=', 'task')]"/>
+                <filter name="type_decision" string="Decisions" domain="[('task_type', '=', 'decision')]"/>
+                <filter name="type_issue" string="Issues" domain="[('task_type', '=', 'issue')]"/>
+                <group>
+                    <filter name="group_assignee" string="Responsible" context="{'group_by': 'assignee_id'}"/>
+                    <filter name="group_meeting" string="Meeting" context="{'group_by': 'meeting_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_type" string="Type" context="{'group_by': 'task_type'}"/>
+                    <filter name="group_reason" string="Deviation Reason" context="{'group_by': 'deviation_reason_id'}"/>
+                    <filter name="group_deadline" string="Due Date" context="{'group_by': 'date_deadline:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_task_pivot" model="ir.ui.view">
+        <field name="name">acc.meeting.task.pivot</field>
+        <field name="model">acc.meeting.task</field>
+        <field name="arch" type="xml">
+            <pivot string="Action Items">
+                <field name="assignee_id" type="row"/>
+                <field name="state" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_task_graph" model="ir.ui.view">
+        <field name="name">acc.meeting.task.graph</field>
+        <field name="model">acc.meeting.task</field>
+        <field name="arch" type="xml">
+            <graph string="Action Items" type="bar">
+                <field name="assignee_id"/>
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_acc_meeting_task" model="ir.actions.act_window">
+        <field name="name">All Action Items</field>
+        <field name="res_model">acc.meeting.task</field>
+        <field name="view_mode">list,kanban,form,pivot,graph</field>
+        <field name="search_view_id" ref="view_acc_meeting_task_search"/>
+        <field name="context">{'search_default_open': 1}</field>
+    </record>
+
+    <record id="action_acc_meeting_task_my" model="ir.actions.act_window">
+        <field name="name">My Action Items</field>
+        <field name="res_model">acc.meeting.task</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_acc_meeting_task_search"/>
+        <field name="domain">[('assignee_id', '=', uid)]</field>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No action items assigned to you</p>
+        </field>
+    </record>
+</odoo>

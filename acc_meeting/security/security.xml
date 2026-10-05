@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_meeting_user" model="res.groups">
+        <field name="name">Meetings: User</field>
+        <field name="comment">Sees the meetings they attend and the action items assigned to them.</field>
+    </record>
+
+    <record id="group_meeting_manager" model="res.groups">
+        <field name="name">Meetings: Manager</field>
+        <field name="comment">Organizes meetings, sees everything and manages configuration and reports.</field>
+        <field name="implied_ids" eval="[(4, ref('group_meeting_user'))]"/>
+    </record>
+
+    <!-- Administrators are meeting managers -->
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('group_meeting_manager'))]"/>
+    </record>
+</odoo>

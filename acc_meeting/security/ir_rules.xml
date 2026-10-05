@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Managers: everything -->
+    <record id="rule_meeting_manager" model="ir.rule">
+        <field name="name">Meeting: manager sees all</field>
+        <field name="model_id" ref="model_acc_meeting"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
+    </record>
+    <record id="rule_meeting_task_manager" model="ir.rule">
+        <field name="name">Action item: manager sees all</field>
+        <field name="model_id" ref="model_acc_meeting_task"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
+    </record>
+    <record id="rule_meeting_agenda_manager" model="ir.rule">
+        <field name="name">Agenda: manager sees all</field>
+        <field name="model_id" ref="model_acc_meeting_agenda"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
+    </record>
+    <record id="rule_meeting_attendee_manager" model="ir.rule">
+        <field name="name">Attendee: manager sees all</field>
+        <field name="model_id" ref="model_acc_meeting_attendee"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
+    </record>
+    <record id="rule_meeting_followup_manager" model="ir.rule">
+        <field name="name">Follow-up: manager sees all</field>
+        <field name="model_id" ref="model_acc_meeting_followup"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
+    </record>
+
+    <!-- Users: only meetings they organise / attend, and their own action items -->
+    <record id="rule_meeting_user" model="ir.rule">
+        <field name="name">Meeting: users see their meetings</field>
+        <field name="model_id" ref="model_acc_meeting"/>
+        <field name="domain_force">[('allowed_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+    </record>
+    <record id="rule_meeting_agenda_user" model="ir.rule">
+        <field name="name">Agenda: users see agenda of their meetings</field>
+        <field name="model_id" ref="model_acc_meeting_agenda"/>
+        <field name="domain_force">[('meeting_id.allowed_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+    </record>
+    <record id="rule_meeting_attendee_user" model="ir.rule">
+        <field name="name">Attendee: users see attendees of their meetings</field>
+        <field name="model_id" ref="model_acc_meeting_attendee"/>
+        <field name="domain_force">[('meeting_id.allowed_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+    </record>
+    <record id="rule_meeting_followup_user" model="ir.rule">
+        <field name="name">Follow-up: users see reviews of their meetings</field>
+        <field name="model_id" ref="model_acc_meeting_followup"/>
+        <field name="domain_force">[('meeting_id.allowed_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+    </record>
+    <record id="rule_meeting_task_user" model="ir.rule">
+        <field name="name">Action item: users see their items and items of their meetings</field>
+        <field name="model_id" ref="model_acc_meeting_task"/>
+        <field name="domain_force">['|', '|',
+            ('assignee_id', '=', user.id),
+            ('create_uid', '=', user.id),
+            '|',
+            ('meeting_id.allowed_user_ids', 'in', [user.id]),
+            ('agenda_line_ids.meeting_id.allowed_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+    </record>
+</odoo>

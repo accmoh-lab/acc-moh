@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="meeting_type_department" model="acc.meeting.type">
+        <field name="name">Department Meeting</field>
+        <field name="level">10</field>
+        <field name="default_duration">1.0</field>
+    </record>
+    <record id="meeting_type_management" model="acc.meeting.type">
+        <field name="name">Management Meeting</field>
+        <field name="level">20</field>
+        <field name="default_duration">1.5</field>
+    </record>
+    <record id="meeting_type_executive" model="acc.meeting.type">
+        <field name="name">Executive Meeting</field>
+        <field name="level">30</field>
+        <field name="default_duration">2.0</field>
+    </record>
+    <record id="meeting_type_board" model="acc.meeting.type">
+        <field name="name">Board Meeting</field>
+        <field name="level">40</field>
+        <field name="default_duration">3.0</field>
+    </record>
+</odoo>

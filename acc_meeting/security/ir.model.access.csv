@@ -1,0 +1,15 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_acc_meeting_user,acc.meeting user,model_acc_meeting,group_meeting_user,1,0,0,0
+access_acc_meeting_manager,acc.meeting manager,model_acc_meeting,group_meeting_manager,1,1,1,1
+access_acc_meeting_type_user,acc.meeting.type user,model_acc_meeting_type,group_meeting_user,1,0,0,0
+access_acc_meeting_type_manager,acc.meeting.type manager,model_acc_meeting_type,group_meeting_manager,1,1,1,1
+access_acc_meeting_deviation_reason_user,acc.meeting.deviation.reason user,model_acc_meeting_deviation_reason,group_meeting_user,1,0,0,0
+access_acc_meeting_deviation_reason_manager,acc.meeting.deviation.reason manager,model_acc_meeting_deviation_reason,group_meeting_manager,1,1,1,1
+access_acc_meeting_attendee_user,acc.meeting.attendee user,model_acc_meeting_attendee,group_meeting_user,1,0,0,0
+access_acc_meeting_attendee_manager,acc.meeting.attendee manager,model_acc_meeting_attendee,group_meeting_manager,1,1,1,1
+access_acc_meeting_agenda_user,acc.meeting.agenda user,model_acc_meeting_agenda,group_meeting_user,1,1,1,0
+access_acc_meeting_agenda_manager,acc.meeting.agenda manager,model_acc_meeting_agenda,group_meeting_manager,1,1,1,1
+access_acc_meeting_task_user,acc.meeting.task user,model_acc_meeting_task,group_meeting_user,1,1,0,0
+access_acc_meeting_task_manager,acc.meeting.task manager,model_acc_meeting_task,group_meeting_manager,1,1,1,1
+access_acc_meeting_followup_user,acc.meeting.followup user,model_acc_meeting_followup,group_meeting_user,1,0,0,0
+access_acc_meeting_followup_manager,acc.meeting.followup manager,model_acc_meeting_followup,group_meeting_manager,1,1,1,1
