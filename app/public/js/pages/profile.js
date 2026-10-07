@@ -1,0 +1,8 @@
+import { $, esc, api, L, lp, wire, toast, field, readForm, showErrors } from '../core.js';
+import { pageHead } from '../ui.js';
+export async function render(ctx) {
+  const { el, me } = ctx;
+  el.innerHTML = `${pageHead('ملفي الشخصي', esc(me.job_title))}<div class="grid g2"><div class="card"><dl class="kv"><dt>الاسم</dt><dd>${esc(me.name)}</dd><dt>رقم الموظف</dt><dd><bdi class="num">${esc(me.emp_no)}</bdi></dd><dt>البريد</dt><dd dir="ltr" style="text-align:right">${esc(me.email)}</dd><dt>الدور</dt><dd>${esc(L.role[me.system_role])}</dd><dt>صلاحيات إضافية</dt><dd>${me.roles.filter(r => r !== me.system_role).join('، ') || '—'}</dd><dt>الوحدة</dt><dd>${esc([me.company, me.bu, me.dept, me.org_unit].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' / '))}</dd><dt>نطاق الوصول</dt><dd>${me.scope_count ? `${me.scope_count} وحدة تنظيمية` : 'بياناتي فقط'}</dd></dl><p class="small muted">المصادقة مستقلة عن Odoo. MFA وSSO جاهزان في البنية ولم يُفعّلا بعد.</p></div>
+   <form class="card" id="pf"><header><h3>تغيير كلمة المرور</h3></header><div class="alert err form-error" hidden></div><div class="stack" style="gap:12px">${field('كلمة المرور الحالية', '<input type="password" name="current" autocomplete="current-password">')}${field('كلمة المرور الجديدة', '<input type="password" name="password" autocomplete="new-password">', { hint: '10 أحرف على الأقل مع حرف كبير وصغير ورقم' })}</div><button class="btn primary" style="margin-top:14px">حفظ</button></form></div>`;
+  $('#pf', el).onsubmit = async e => { e.preventDefault(); try { await api('/auth/change-password', { method: 'POST', body: readForm(e.target) }); toast('تم تغيير كلمة المرور'); e.target.reset(); } catch (x) { showErrors(e.target, x); } };
+}

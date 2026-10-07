@@ -13,6 +13,9 @@ const meetings = require('./meetings');
 const { forbidden, today, diffDays, addDays, setting } = require('../util');
 
 const SEV = { critical: 0, high: 1, medium: 2 };
+const iso = v => `\u2066${v}\u2069`;
+const nf = v => (v === null || v === undefined ? '—' : iso(Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 })));
+const TST = { not_started: 'لم تبدأ', in_progress: 'قيد التنفيذ', pending_review: 'بانتظار المراجعة', blocked: 'معطّلة' };
 const empName = id => (id ? db.get('SELECT name FROM employees WHERE id = ?', id)?.name : null);
 
 function attentionItems(user) {
@@ -33,7 +36,7 @@ function attentionItems(user) {
     const handled = db.get(`SELECT m.code, m.id FROM agenda_items a JOIN meetings m ON m.id = a.meeting_id WHERE a.related_kpi_id = ? AND m.deleted_at IS NULL AND m.status NOT IN ('cancelled') AND m.meeting_date >= date(?, '-14 day') ORDER BY m.meeting_date DESC LIMIT 1`, r.id, t0);
     const task = db.get(`SELECT code, id, status FROM tasks WHERE kpi_id = ? AND deleted_at IS NULL AND status NOT IN ('cancelled') ORDER BY id DESC LIMIT 1`, r.id);
     push({ id: `kpi-${r.id}`, type: 'red_kpi', severity: r.achievement < 70 || r.category === 'financial' ? 'critical' : 'high', title: `KPI أحمر: ${r.name}`,
-      detail: `الإنجاز ${r.achievement}% — الفعلي ${r.actual} مقابل المستهدف ${r.tgt} (${r.period_key})`, owner_name: empName(r.owner_id), owner_id: r.owner_id, age_days: Math.max(0, diffDays(t0, r.period_end)),
+      detail: `الإنجاز ${nf(r.achievement)}% — الفعلي ${nf(r.actual)} مقابل المستهدف ${nf(r.tgt)} ${r.unit || ''} · الفترة ${iso(r.period_key)}`, owner_name: empName(r.owner_id), owner_id: r.owner_id, age_days: Math.max(0, diffDays(t0, r.period_end)),
       impact: r.category === 'financial' ? 'أثر مالي مباشر' : 'أثر على الأداء التشغيلي', source: { type: 'kpi', id: r.id, label: r.code }, recommended: handled || task ? 'تابع تنفيذ الإجراء المسجّل' : 'أضف المؤشر إلى جدول اجتماع الإدارة وحدّد إجراءً تصحيحيًا',
       follow_up: { meeting: handled ? { id: handled.id, code: handled.code } : null, task: task ? { id: task.id, code: task.code, status: task.status } : null }, action: handled || task ? null : 'create_meeting', kpi_id: r.id });
   }
@@ -44,7 +47,7 @@ function attentionItems(user) {
       if (!targets.visibleOrg(user, f.org_unit_id)) continue; const x = targets.row(f);
       if (!x.major) continue;
       push({ id: `fin-${f.id}`, type: 'financial_variance', severity: Math.abs(x.variance_pct) >= 20 ? 'critical' : 'high', title: `انحراف مالي: ${f.label} — ${x.org_name}`,
-        detail: `الفعلي ${f.actual.toLocaleString('en')} مقابل المستهدف ${f.target.toLocaleString('en')} ${f.currency} (${x.variance_pct}%)`, owner_name: null, age_days: Math.max(0, diffDays(t0, f.period_end)),
+        detail: `الفعلي ${nf(f.actual)} مقابل المستهدف ${nf(f.target)} ${f.currency} · الانحراف ${nf(x.variance_pct)}% · ${iso(f.period_key)}`, owner_name: null, age_days: Math.max(0, diffDays(t0, f.period_end)),
         impact: 'تأثير على النتائج المالية', source: { type: 'target', id: f.id, label: f.period_key }, recommended: 'راجع أسباب الانحراف في اجتماع المالية/الإدارة واعتمد خطة تعويض', action: f.related_kpi_id ? 'create_meeting' : null, kpi_id: f.related_kpi_id });
     }
   }
@@ -54,7 +57,7 @@ function attentionItems(user) {
   for (const t of db.all(`SELECT t.*, o.name owner_name FROM tasks t JOIN employees o ON o.id = t.owner_id WHERE ${tv} AND ${scopeTask} AND t.priority IN ('critical','high') AND t.status IN ('not_started','in_progress','pending_review','blocked') AND t.due_date < ?`, t0)) {
     const age = diffDays(t0, t.due_date);
     push({ id: `task-${t.id}`, type: 'overdue_task', severity: t.priority === 'critical' || age > 7 ? 'critical' : 'high', title: `مهمة ${t.priority === 'critical' ? 'حرجة' : 'عالية الأولوية'} متأخرة: ${t.title}`,
-      detail: `متأخرة ${age} يومًا — الحالة ${t.status}`, owner_name: t.owner_name, owner_id: t.owner_id, age_days: age, impact: t.kpi_id || t.decision_id ? 'تؤثر على تنفيذ قرار/مؤشر' : 'تأخر في التنفيذ', source: { type: 'task', id: t.id, label: t.code }, recommended: 'تواصل مع المسؤول وحدّد موعدًا جديدًا أو صعّد العائق' });
+      detail: `متأخرة ${age} يومًا — ${TST[t.status] || t.status}`, owner_name: t.owner_name, owner_id: t.owner_id, age_days: age, impact: t.kpi_id || t.decision_id ? 'تؤثر على تنفيذ قرار/مؤشر' : 'تأخر في التنفيذ', source: { type: 'task', id: t.id, label: t.code }, recommended: 'تواصل مع المسؤول وحدّد موعدًا جديدًا أو صعّد العائق' });
   }
   for (const t of db.all(`SELECT t.*, o.name owner_name FROM tasks t JOIN employees o ON o.id = t.owner_id WHERE ${tv} AND ${scopeTask} AND t.priority IN ('critical','high') AND t.status = 'blocked' AND t.due_date >= ?`, t0)) {
     push({ id: `blk-${t.id}`, type: 'blocked_task', severity: t.priority === 'critical' ? 'critical' : 'high', title: `مهمة معطّلة: ${t.title}`, detail: t.blocked_reason || '', owner_name: t.owner_name, owner_id: t.owner_id, age_days: Math.max(0, diffDays(t0, t.updated_at.slice(0, 10))), impact: 'عائق يمنع التقدم', source: { type: 'task', id: t.id, label: t.code }, recommended: 'أزل العائق أو صعّده للإدارة' });
@@ -68,14 +71,14 @@ function attentionItems(user) {
   }
   // 6) مبادرات معرضة للخطر
   for (const i of db.all(`SELECT * FROM initiatives i WHERE i.status = 'at_risk' AND ${rbac.initiativeVisibilitySql(user)}`)) {
-    push({ id: `ini-${i.id}`, type: 'initiative_at_risk', severity: 'high', title: `مبادرة معرضة للخطر: ${i.title}`, detail: i.risk_note || `التقدم ${i.progress}%`, owner_name: empName(i.owner_id), owner_id: i.owner_id, age_days: Math.max(0, diffDays(t0, i.updated_at.slice(0, 10))), impact: 'قد لا تتحقق الفائدة المتوقعة', source: { type: 'initiative', id: i.id, label: i.code }, recommended: 'راجع خطة الاستعادة مع المالك والراعي' });
+    push({ id: `ini-${i.id}`, type: 'initiative_at_risk', severity: 'high', title: `مبادرة معرضة للخطر: ${i.title}`, detail: i.risk_note || `التقدم ${nf(i.progress)}%`, owner_name: empName(i.owner_id), owner_id: i.owner_id, age_days: Math.max(0, diffDays(t0, i.updated_at.slice(0, 10))), impact: 'قد لا تتحقق الفائدة المتوقعة', source: { type: 'initiative', id: i.id, label: i.code }, recommended: 'راجع خطة الاستعادة مع المالك والراعي' });
   }
   // 7) بيانات KPI ناقصة للفترة المستحقة
   for (const k of db.all(`SELECT * FROM kpis WHERE deleted_at IS NULL AND approval_status = 'approved' AND level <> 'employee' AND kpi_type <> 'formula' AND data_source <> 'calculated'`)) {
     if (!scopeKpi(k)) continue; const key = kpis.dueKey(k.frequency); const r = kpiEngine.getResult(k.id, key);
     if (r && r.actual !== null) continue;
     const p = periods.parseKey(key);
-    push({ id: `miss-${k.id}`, type: 'missing_kpi_data', severity: 'medium', title: `بيانات ناقصة: ${k.name}`, detail: `لم تُدخل بيانات ${key}`, owner_name: empName(k.data_owner_id || k.owner_id), owner_id: k.data_owner_id || k.owner_id, age_days: Math.max(0, diffDays(t0, p.end)), impact: 'لا يمكن تقييم الأداء بدون بيانات', source: { type: 'kpi', id: k.id, label: k.code }, recommended: 'ذكّر مالك البيانات بإدخال القيمة' });
+    push({ id: `miss-${k.id}`, type: 'missing_kpi_data', severity: 'medium', title: `بيانات ناقصة: ${k.name}`, detail: `لم تُدخل بيانات الفترة ${iso(key)}`, owner_name: empName(k.data_owner_id || k.owner_id), owner_id: k.data_owner_id || k.owner_id, age_days: Math.max(0, diffDays(t0, p.end)), impact: 'لا يمكن تقييم الأداء بدون بيانات', source: { type: 'kpi', id: k.id, label: k.code }, recommended: 'ذكّر مالك البيانات بإدخال القيمة' });
   }
   // 8) اعتمادات معلّقة
   for (const t of db.all(`SELECT t.*, o.name owner_name, r.name rev FROM tasks t JOIN employees o ON o.id = t.owner_id LEFT JOIN employees r ON r.id = t.reviewer_id WHERE ${tv} AND ${scopeTask} AND t.status = 'pending_review' AND t.updated_at < ?`, new Date(Date.now() - 3 * 864e5).toISOString())) {

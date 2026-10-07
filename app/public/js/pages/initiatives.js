@@ -1,0 +1,37 @@
+import { $, esc, api, qs, icon, L, lp, pill, num, pct, ltr, fdate, state, wire, toast, modal, readForm, showErrors, field, opts, bar } from '../core.js';
+import { pageHead, getDir, getOrg, getKpiList, empOpts, empty } from '../ui.js';
+import { newTask } from './tasks.js';
+
+export async function render(ctx) { return ctx.name === 'initiatives' ? list(ctx) : detail(ctx); }
+async function list(ctx) {
+  const { el, me, query } = ctx;
+  const r = await api('/initiatives' + qs({ status: query.status }));
+  const can = me.is_exec || ['department_manager', 'business_unit_manager'].includes(me.system_role);
+  el.innerHTML = `${pageHead('المبادرات', 'المبادرات الاستراتيجية وربطها بالمؤشرات والقرارات والمهام.', can ? `<button class="btn primary" data-act="new">${icon('plus')} مبادرة جديدة</button>` : '')}
+   <div class="filters"><div class="seg">${[['', 'الكل'], ['at_risk', 'معرضة للخطر'], ['active', 'نشطة'], ['planned', 'مخططة'], ['completed', 'مكتملة']].map(([k, l]) => `<button class="${(query.status || '') === k ? 'on' : ''}" data-act="st" data-v="${k}">${l}</button>`).join('')}</div></div>
+   ${r.items.length ? `<div class="grid g3">${r.items.map(i => `<a class="card" href="#/initiatives/${i.id}" style="color:inherit;text-decoration:none;${i.status === 'at_risk' ? 'border-color:color-mix(in srgb,var(--red) 45%,var(--line))' : ''}"><div class="row spread">${lp(L.initiative, i.status)}<span class="tag">${ltr(i.code)}</span></div><h3 style="margin:10px 0 4px">${esc(i.title)}</h3><p class="small muted" style="margin:0 0 12px">${esc(i.objective || '')}</p><div class="row" style="flex-wrap:nowrap">${bar(i.progress, i.status === 'at_risk' ? 'red' : i.status === 'completed' ? 'green' : '')}<b><bdi class="num">${i.progress}%</bdi></b></div><div class="small muted" style="margin-top:10px">${esc(i.owner_name)} · المستهدف ${fdate(i.target_date)}</div><div class="small" style="margin-top:4px">${i.tasks_done}/${i.tasks_total} مهام${i.tasks_overdue ? ` · <b class="down">${i.tasks_overdue} متأخرة</b>` : ''}</div>${i.risk_note && i.status === 'at_risk' ? `<div class="alert err small" style="margin-top:10px">${esc(i.risk_note)}</div>` : ''}</a>`).join('')}</div>` : `<div class="card">${state('empty', 'لا توجد مبادرات', 'المبادرات تربط الأهداف الاستراتيجية بالتنفيذ.')}</div>`}`;
+  wire(el, { st: b => { location.hash = '#/initiatives' + qs({ status: b.dataset.v }); }, new: () => form(null, ctx) });
+}
+async function detail(ctx) {
+  const { el, me, params } = ctx;
+  const i = await api('/initiatives/' + params[0]);
+  el.innerHTML = `${pageHead(i.title, `${ltr(i.code)} · ${esc(i.org_name || '')}`, `${i.can_edit ? '<button class="btn" data-act="edit">تحديث الحالة والتقدم</button>' : ''}${i.can_edit ? `<button class="btn primary" data-act="task">${icon('plus')} مهمة للمبادرة</button>` : ''}`, '<a href="#/initiatives">المبادرات</a>')}
+   <div class="row" style="margin:-8px 0 16px">${lp(L.initiative, i.status)}</div>
+   ${i.status === 'at_risk' ? `<div class="alert err"><b>سبب الخطر:</b> ${esc(i.risk_note || '')}</div>` : ''}
+   <div class="grid g-main"><div class="stack">
+    <div class="card"><header><h3>التقدم</h3></header><div class="row" style="flex-wrap:nowrap">${bar(i.progress, i.status === 'at_risk' ? 'red' : '')}<b><bdi class="num">${i.progress}%</bdi></b></div><dl class="kv" style="margin-top:14px"><dt>الهدف</dt><dd>${esc(i.objective || '—')}</dd><dt>الأثر المتوقع</dt><dd>${esc(i.expected_impact || '—')}</dd><dt>الأثر الفعلي</dt><dd>${esc(i.actual_impact || '—')}</dd></dl></div>
+    <div class="card"><header><h3>المهام</h3></header>${i.tasks.length ? `<div class="list">${i.tasks.map(t => `<a class="item" href="#/tasks/${t.id}"><div class="grow"><span class="t">${esc(t.title)}</span><span class="small muted">${esc(t.owner_name)} · ${fdate(t.due_date)} · ${t.progress}%</span></div>${lp(L.taskStatus, t.status)}</a>`).join('')}</div>` : empty('لا توجد مهام.')}</div>
+   </div><div class="stack">
+    <div class="card"><dl class="kv"><dt>المالك</dt><dd>${esc(i.owner_name)}</dd><dt>الراعي</dt><dd>${esc(i.sponsor_name || '—')}</dd><dt>البدء</dt><dd>${fdate(i.start_date)}</dd><dt>المستهدف</dt><dd>${fdate(i.target_date)}</dd></dl></div>
+    <div class="card"><header><h3>المؤشرات</h3></header>${i.kpis.length ? `<div class="list">${i.kpis.map(k => `<a class="item" href="#/kpis/${k.id}">${icon('kpi')}<span class="grow t">${esc(k.name)}</span></a>`).join('')}</div>` : empty('لا توجد.')}</div>
+    <div class="card"><header><h3>القرارات والاجتماعات</h3></header>${i.decisions.map(d => `<a class="item" href="#/decisions/${d.id}"><span class="grow small">${ltr(d.code)} — ${esc(d.text)}</span></a>`).join('')}${i.meetings.map(m => `<a class="item" href="#/meetings/${m.id}"><span class="grow small">${esc(m.title)} · ${fdate(m.meeting_date)}</span></a>`).join('') || (!i.decisions.length ? empty('لا توجد.') : '')}</div>
+   </div></div>`;
+  wire(el, { edit: () => form(i, ctx), task: () => newTask(me, { initiative_id: i.id, source: 'initiative', title: '' }, () => ctx.reload()) });
+}
+async function form(i, ctx) {
+  const [dir, org, kpis] = await Promise.all([getDir(), getOrg(), getKpiList().catch(() => [])]);
+  const v = i || { status: 'planned', progress: 0 };
+  const mm = modal({ title: i ? 'تحديث المبادرة' : 'مبادرة جديدة', wide: true, body: `<form id="if"><div class="alert err form-error" hidden></div><div class="form-grid">${field('العنوان', `<input name="title" value="${esc(v.title || '')}">`, { full: true, req: true })}${field('الحالة', `<select name="status">${opts(Object.entries(L.initiative).map(([k, x]) => [k, x[0]]), v.status)}</select>`)}${field('التقدم %', `<input type="number" name="progress" min="0" max="100" value="${v.progress}">`)}${field('المالك', `<select name="owner_id">${empOpts(dir, v.owner_id || ctx.me.id)}</select>`)}${field('الراعي', `<select name="sponsor_id">${empOpts(dir, v.sponsor_id, 'بدون')}</select>`)}${field('الوحدة', `<select name="org_unit_id">${opts(org.map(o => [o.id, o.name]), v.org_unit_id, 'بدون')}</select>`)}${field('المؤشرات المرتبطة', `<select name="kpi_ids" multiple size="4">${kpis.map(k => `<option value="${k.id}"${(i?.kpis || []).some(x => x.id === k.id) ? ' selected' : ''}>${esc(k.name)}</option>`).join('')}</select>`)}${field('البدء', `<input type="date" name="start_date" value="${v.start_date || ''}">`)}${field('التاريخ المستهدف', `<input type="date" name="target_date" value="${v.target_date || ''}">`)}${field('سبب الخطر (إلزامي عند At Risk)', `<input name="risk_note" value="${esc(v.risk_note || '')}">`, { full: true })}${field('الهدف', `<textarea name="objective">${esc(v.objective || '')}</textarea>`, { full: true })}${field('الأثر المتوقع', `<input name="expected_impact" value="${esc(v.expected_impact || '')}">`)}${field('الأثر الفعلي', `<input name="actual_impact" value="${esc(v.actual_impact || '')}">`)}</div></form>`, footer: '<button class="btn primary" data-ok>حفظ</button><button class="btn" data-close>إلغاء</button>' });
+  mm.$('[data-ok]').onclick = async () => { const f = mm.$('#if'); const d = readForm(f); d.kpi_ids = [...f.querySelector('[name=kpi_ids]').selectedOptions].map(o => Number(o.value)); for (const k of ['owner_id', 'sponsor_id', 'org_unit_id', 'progress']) d[k] = d[k] === null ? null : Number(d[k]);
+    try { const r = i ? await api(`/initiatives/${i.id}`, { method: 'PUT', body: d }) : await api('/initiatives', { method: 'POST', body: d }); mm.close(); toast('تم الحفظ'); if (i) ctx.reload(); else location.hash = `#/initiatives/${r.id}`; } catch (e) { showErrors(f, e); } };
+}

@@ -322,8 +322,8 @@ function seed() {
     const owners = ['E040', 'E041', 'E042', 'E043', 'E044', 'E045', 'E046', 'E047', 'E048', 'E049'];
     const monthsBack = [[-95, -65], [-65, -35], [-35, -6]];
     for (const [a, b] of monthsBack) for (const o of owners) {
-      for (let i = 0; i < 2; i++) { const due = T(Math.round(a + rnd() * (b - a))); const late = rnd() < 0.2 ? Math.round(2 + rnd() * 4) : 0; const meet = rnd() < 0.3; const open = rnd() < 0.08;
-        task(null, { title: ['تحديث تقرير المتابعة الأسبوعي', 'مراجعة بيانات العملاء', 'تجهيز مستندات الاجتماع', 'إغلاق ملاحظات المراجعة', 'تحديث لوحة المؤشرات'][Math.floor(rnd() * 5)] + ` (${o})`, source: meet ? 'meeting' : 'operational', owner: o, pr: ['low', 'medium', 'medium', 'high'][Math.floor(rnd() * 4)], w: 1 + Math.floor(rnd() * 2), start: addDays(due, -7), due, status: open ? 'in_progress' : 'completed', p: open ? 60 : 100, done: open ? null : new Date(new Date(due + 'T12:00:00').getTime() + late * 864e5).toISOString(), by: 'E020' }); }
+      for (let i = 0; i < 2; i++) { const due = T(Math.round(a + rnd() * (b - a))); const late = rnd() < 0.2 ? Math.round(2 + rnd() * 4) : 0; const meet = rnd() < 0.3; const open = false; rnd();
+        task(null, { title: ['تحديث تقرير المتابعة الأسبوعي', 'مراجعة بيانات العملاء', 'تجهيز مستندات الاجتماع', 'إغلاق ملاحظات المراجعة', 'تحديث لوحة المؤشرات'][Math.floor(rnd() * 5)], source: meet ? 'meeting' : 'operational', owner: o, pr: ['low', 'medium', 'medium', 'high'][Math.floor(rnd() * 4)], w: 1 + Math.floor(rnd() * 2), start: addDays(due, -7), due, status: open ? 'in_progress' : 'completed', p: open ? 60 : 100, done: open ? null : new Date(new Date(due + 'T12:00:00').getTime() + late * 864e5).toISOString(), by: 'E020' }); }
     }
 
     // ---------- فترات الأداء والتقييمات ----------
