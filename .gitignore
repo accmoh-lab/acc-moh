@@ -3,3 +3,9 @@ __pycache__/
 *.pyo
 .idea/
 .vscode/
+node_modules/
+app/data/
+*.db
+*.db-wal
+*.db-shm
+.env

@@ -1,0 +1,14 @@
+{
+  "name": "acc-moh-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "منصة إدارة الاجتماعات والقرارات والمهام والأداء — Web App مستقل",
+  "type": "commonjs",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node --no-warnings server.js",
+    "seed": "node --no-warnings src/seed.js --reset",
+    "test": "node --no-warnings --test tests/api.test.js",
+    "test:e2e": "node --no-warnings tests/e2e.js"
+  }
+}
