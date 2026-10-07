@@ -147,7 +147,7 @@ export function showErrors(root, e) {
   first?.focus();
   const box = root.querySelector('.form-error'); if (box) { box.textContent = e.message; box.hidden = false; } else toast(e.message, 'err');
 }
-export const field = (label, input, { hint, full, req } = {}) => `<div class="field${full ? ' full' : ''}"><label>${esc(label)}${req ? ' <span class="muted">*</span>' : ''}</label>${input}${hint ? `<span class="hint">${esc(hint)}</span>` : ''}</div>`;
+export const field = (label, input, { hint, full, req } = {}) => `<div class="field${full ? ' full' : ''}"><label>${esc(label)}${req ? ' <span class="muted">*</span>' : ''}</label>${input}${hint ? `<span class="hint">${rich(hint)}</span>` : ''}</div>`;
 export const opts = (items, sel, empty) => (empty !== undefined ? `<option value="">${esc(empty)}</option>` : '') + items.map(([v, l]) => `<option value="${esc(v)}"${String(v) === String(sel ?? '') ? ' selected' : ''}>${esc(l)}</option>`).join('');
 
 // ---------- رسوم SVG ----------

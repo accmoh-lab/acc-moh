@@ -151,7 +151,7 @@ function meetingVisibilitySql(u, alias = 'm') {
 
 // ---------- KPI ----------
 function canSeeKpi(u, k) {
-  if (u.isAdmin) return true;                                   // الإعدادات فقط (لا نتائج حساسة للأفراد)
+  if (u.isAdmin) return k.level !== 'employee';                 // مدير النظام: مؤشرات الوحدات فقط، لا مؤشرات الأفراد
   if ([k.owner_id, k.data_owner_id, k.reviewer_id, k.employee_id].includes(u.id)) return true;
   if (k.level === 'employee') {
     const emp = db.get('SELECT * FROM employees WHERE id = ?', k.employee_id);

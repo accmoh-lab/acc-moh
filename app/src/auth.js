@@ -43,11 +43,12 @@ function rateLimit(key, max, windowMs) {
   arr.push(now); hits.set(key, arr);
 }
 
+let DUMMY = null;   // تجزئة وهمية لتوحيد زمن الاستجابة ومنع كشف الحسابات
 function login({ email, password, mfa }, ip, ua) {
   rateLimit('login:' + ip, 30, 60000);
   const generic = new HttpError(401, 'البريد الإلكتروني أو كلمة المرور غير صحيحة.', 'BAD_CREDENTIALS');
   const e = db.get('SELECT * FROM employees WHERE lower(email) = lower(?) AND deleted_at IS NULL', String(email || '').trim());
-  if (!e || !e.can_login || !e.active) { verifyPassword('x', 'scrypt$00$00'); throw generic; }
+  if (!e || !e.can_login || !e.active) { DUMMY ||= hashPassword('dummy-Password1'); verifyPassword(String(password || ''), DUMMY); throw generic; }
   if (e.locked_until && e.locked_until > nowIso()) throw new HttpError(423, 'تم إيقاف الحساب مؤقتًا بعد محاولات فاشلة. حاول لاحقًا.', 'LOCKED');
   if (!verifyPassword(String(password || ''), e.password_hash)) {
     const fails = e.failed_logins + 1;

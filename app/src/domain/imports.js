@@ -106,9 +106,10 @@ function analyze(user, d, csv) {
   const seen = new Map();
   return p.rows.map(r => {
     const k = d.key(r.data); const errors = d.check(r.data, user);
-    const dupInFile = seen.has(k); seen.set(k, r.line);
-    const ex = errors.length ? null : d.existing(r.data);
-    return { line: r.line, data: r.data, errors: dupInFile ? [...errors, `مكرر داخل الملف (السطر ${seen.get(k)})`] : errors, duplicate: !!ex || dupInFile, action: errors.length ? 'error' : ex ? 'duplicate' : 'create' };
+    const dupInFile = seen.has(k);
+    const ex = errors.length || seen.has(k) ? null : d.existing(r.data);
+    const first = dupInFile ? seen.get(k) : null; if (!dupInFile) seen.set(k, r.line);
+    return { line: r.line, data: r.data, errors, warnings: dupInFile ? [`مكرر داخل الملف (السطر ${first}) — سيُتجاهل`] : [], duplicate: !!ex || dupInFile, in_file_dup: dupInFile, action: errors.length ? 'error' : (ex || dupInFile) ? 'duplicate' : 'create' };
   });
 }
 H.get('/api/import/:entity/template', ({ user, params }) => {
@@ -129,7 +130,7 @@ H.post('/api/import/:entity/commit', ({ user, params, body }) => {
     for (const r of rows) {
       if (r.action === 'error') { skipped++; continue; }
       if (r.action === 'duplicate') {
-        if (body.update_existing && ['employees', 'actuals'].includes(params.entity)) { d.apply(r.data, user, d.existing(r.data)); updated++; } else skipped++;
+        if (body.update_existing && !r.in_file_dup && ['employees', 'actuals'].includes(params.entity)) { d.apply(r.data, user, d.existing(r.data)); updated++; } else skipped++;
         continue;
       }
       d.apply(r.data, user); created++;
