@@ -2,70 +2,224 @@
 <odoo noupdate="1">
     <!-- Managers: everything -->
     <record id="rule_meeting_manager" model="ir.rule">
-        <field name="name">Meeting: manager sees all</field>
+        <field name="name">meeting: manager sees all</field>
         <field name="model_id" ref="model_acc_meeting"/>
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
     </record>
     <record id="rule_meeting_task_manager" model="ir.rule">
-        <field name="name">Action item: manager sees all</field>
+        <field name="name">meeting_task: manager sees all</field>
         <field name="model_id" ref="model_acc_meeting_task"/>
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
     </record>
     <record id="rule_meeting_agenda_manager" model="ir.rule">
-        <field name="name">Agenda: manager sees all</field>
+        <field name="name">meeting_agenda: manager sees all</field>
         <field name="model_id" ref="model_acc_meeting_agenda"/>
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
     </record>
     <record id="rule_meeting_attendee_manager" model="ir.rule">
-        <field name="name">Attendee: manager sees all</field>
+        <field name="name">meeting_attendee: manager sees all</field>
         <field name="model_id" ref="model_acc_meeting_attendee"/>
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
     </record>
     <record id="rule_meeting_followup_manager" model="ir.rule">
-        <field name="name">Follow-up: manager sees all</field>
+        <field name="name">meeting_followup: manager sees all</field>
         <field name="model_id" ref="model_acc_meeting_followup"/>
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
     </record>
+    <record id="rule_meeting_decision_manager" model="ir.rule">
+        <field name="name">meeting_decision: manager sees all</field>
+        <field name="model_id" ref="model_acc_meeting_decision"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
+    </record>
+    <record id="rule_meeting_preparation_manager" model="ir.rule">
+        <field name="name">meeting_preparation: manager sees all</field>
+        <field name="model_id" ref="model_acc_meeting_preparation"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_manager'))]"/>
+    </record>
 
-    <!-- Users: only meetings they organise / attend, and their own action items -->
-    <record id="rule_meeting_user" model="ir.rule">
-        <field name="name">Meeting: users see their meetings</field>
+    <!-- Meeting: users read the meetings they lead, attend or have an action item in;
+         only the leaders (organizer / chairperson / minute taker) change them. -->
+    <record id="rule_meeting_user_read" model="ir.rule">
+        <field name="name">Meeting: users read their meetings</field>
         <field name="model_id" ref="model_acc_meeting"/>
         <field name="domain_force">[('allowed_user_ids', 'in', [user.id])]</field>
         <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
     </record>
-    <record id="rule_meeting_agenda_user" model="ir.rule">
-        <field name="name">Agenda: users see agenda of their meetings</field>
+    <record id="rule_meeting_leader_write" model="ir.rule">
+        <field name="name">Meeting: leaders change their meetings</field>
+        <field name="model_id" ref="model_acc_meeting"/>
+        <field name="domain_force">[('leader_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Child records of a meeting follow the meeting -->
+    <record id="rule_meeting_agenda_user_read" model="ir.rule">
+        <field name="name">meeting_agenda: users read records of their meetings</field>
         <field name="model_id" ref="model_acc_meeting_agenda"/>
         <field name="domain_force">[('meeting_id.allowed_user_ids', 'in', [user.id])]</field>
         <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
     </record>
-    <record id="rule_meeting_attendee_user" model="ir.rule">
-        <field name="name">Attendee: users see attendees of their meetings</field>
+    <record id="rule_meeting_agenda_leader_write" model="ir.rule">
+        <field name="name">meeting_agenda: leaders change records of their meetings</field>
+        <field name="model_id" ref="model_acc_meeting_agenda"/>
+        <field name="domain_force">[('meeting_id.leader_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+    <record id="rule_meeting_attendee_user_read" model="ir.rule">
+        <field name="name">meeting_attendee: users read records of their meetings</field>
         <field name="model_id" ref="model_acc_meeting_attendee"/>
         <field name="domain_force">[('meeting_id.allowed_user_ids', 'in', [user.id])]</field>
         <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
     </record>
-    <record id="rule_meeting_followup_user" model="ir.rule">
-        <field name="name">Follow-up: users see reviews of their meetings</field>
+    <record id="rule_meeting_attendee_leader_write" model="ir.rule">
+        <field name="name">meeting_attendee: leaders change records of their meetings</field>
+        <field name="model_id" ref="model_acc_meeting_attendee"/>
+        <field name="domain_force">[('meeting_id.leader_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+    <record id="rule_meeting_followup_user_read" model="ir.rule">
+        <field name="name">meeting_followup: users read records of their meetings</field>
         <field name="model_id" ref="model_acc_meeting_followup"/>
         <field name="domain_force">[('meeting_id.allowed_user_ids', 'in', [user.id])]</field>
         <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
     </record>
-    <record id="rule_meeting_task_user" model="ir.rule">
-        <field name="name">Action item: users see their items and items of their meetings</field>
+    <record id="rule_meeting_followup_leader_write" model="ir.rule">
+        <field name="name">meeting_followup: leaders change records of their meetings</field>
+        <field name="model_id" ref="model_acc_meeting_followup"/>
+        <field name="domain_force">[('meeting_id.leader_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+    <record id="rule_meeting_decision_user_read" model="ir.rule">
+        <field name="name">meeting_decision: users read records of their meetings</field>
+        <field name="model_id" ref="model_acc_meeting_decision"/>
+        <field name="domain_force">[('meeting_id.allowed_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_meeting_decision_leader_write" model="ir.rule">
+        <field name="name">meeting_decision: leaders change records of their meetings</field>
+        <field name="model_id" ref="model_acc_meeting_decision"/>
+        <field name="domain_force">[('meeting_id.leader_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Preparation: leaders always; members only once released -->
+    <record id="rule_meeting_preparation_leader" model="ir.rule">
+        <field name="name">Preparation: leaders</field>
+        <field name="model_id" ref="model_acc_meeting_preparation"/>
+        <field name="domain_force">[('meeting_id.leader_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+    <record id="rule_meeting_preparation_member" model="ir.rule">
+        <field name="name">Preparation: attendees read released reports</field>
+        <field name="model_id" ref="model_acc_meeting_preparation"/>
+        <field name="domain_force">[('released', '=', True), ('meeting_id.member_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Action items -->
+    <record id="rule_meeting_task_user_read" model="ir.rule">
+        <field name="name">Action item: users read their items and items of their meetings</field>
         <field name="model_id" ref="model_acc_meeting_task"/>
-        <field name="domain_force">['|', '|',
+        <field name="domain_force">['|', '|', '|',
             ('assignee_id', '=', user.id),
             ('create_uid', '=', user.id),
-            '|',
             ('meeting_id.allowed_user_ids', 'in', [user.id]),
-            ('agenda_line_ids.meeting_id.allowed_user_ids', 'in', [user.id])]</field>
+            '|',
+            ('agenda_line_ids.meeting_id.allowed_user_ids', 'in', [user.id]),
+            ('followup_ids.meeting_id.allowed_user_ids', 'in', [user.id])]</field>
         <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_meeting_task_user_write" model="ir.rule">
+        <field name="name">Action item: assignee and meeting leaders change items</field>
+        <field name="model_id" ref="model_acc_meeting_task"/>
+        <field name="domain_force">['|',
+            ('assignee_id', '=', user.id),
+            ('meeting_id.leader_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_meeting_task_user_create" model="ir.rule">
+        <field name="name">Action item: leaders create items</field>
+        <field name="model_id" ref="model_acc_meeting_task"/>
+        <field name="domain_force">['|',
+            ('meeting_id', '=', False),
+            ('meeting_id.leader_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_meeting_task_user_unlink" model="ir.rule">
+        <field name="name">Action item: leaders delete items</field>
+        <field name="model_id" ref="model_acc_meeting_task"/>
+        <field name="domain_force">[('meeting_id.leader_user_ids', 'in', [user.id])]</field>
+        <field name="groups" eval="[(4, ref('group_meeting_user'))]"/>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="True"/>
     </record>
 </odoo>

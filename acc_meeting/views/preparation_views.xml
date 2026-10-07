@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_acc_meeting_preparation_list" model="ir.ui.view">
+        <field name="name">acc.meeting.preparation.list</field>
+        <field name="model">acc.meeting.preparation</field>
+        <field name="arch" type="xml">
+            <list create="0">
+                <field name="meeting_id"/>
+                <field name="meeting_type_id"/>
+                <field name="meeting_date"/>
+                <field name="state" widget="badge" decoration-success="state == 'published'"/>
+                <field name="released"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_preparation_form" model="ir.ui.view">
+        <field name="name">acc.meeting.preparation.form</field>
+        <field name="model">acc.meeting.preparation</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0">
+                <header>
+                    <button name="action_publish" string="Publish to Attendees" type="object"
+                            class="btn-primary" invisible="state != 'draft' or not is_leader"/>
+                    <button name="action_unpublish" string="Back to Draft" type="object"
+                            invisible="state != 'published' or released or not is_leader"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,published"/>
+                </header>
+                <sheet>
+                    <field name="is_leader" invisible="1"/>
+                    <field name="meeting_state" invisible="1"/>
+                    <div class="alert alert-info" role="alert" invisible="not is_leader or released">
+                        The attendees see this report only after you publish it, and only when the meeting is
+                        within the release window shown below.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="meeting_id"/>
+                            <field name="meeting_date"/>
+                            <field name="release_hours"/>
+                        </group>
+                        <group>
+                            <field name="released"/>
+                            <field name="released_on" invisible="not released"/>
+                        </group>
+                    </group>
+                    <group string="Preparation Report">
+                        <field name="summary" nolabel="1" colspan="2"
+                               readonly="not is_leader or meeting_state in ('done', 'cancelled')"/>
+                    </group>
+                    <group string="Decisions Expected from the Meeting">
+                        <field name="expected_decisions" nolabel="1" colspan="2"
+                               readonly="not is_leader or meeting_state in ('done', 'cancelled')"/>
+                    </group>
+                    <group string="Required from Members Before the Meeting">
+                        <field name="required_from_members" nolabel="1" colspan="2"
+                               readonly="not is_leader or meeting_state in ('done', 'cancelled')"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_acc_meeting_preparation_search" model="ir.ui.view">
+        <field name="name">acc.meeting.preparation.search</field>
+        <field name="model">acc.meeting.preparation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="meeting_id"/>
+                <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="published" string="Published" domain="[('state', '=', 'published')]"/>
+                <filter name="released" string="Visible to Attendees" domain="[('released', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_acc_meeting_preparation" model="ir.actions.act_window">
+        <field name="name">Preparation Reports</field>
+        <field name="res_model">acc.meeting.preparation</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_acc_meeting_preparation_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No preparation reports available</p>
+            <p>Preparation reports of the meetings you attend appear here 48 hours before the meeting.
+               Reports of meetings you lead are always visible to you.</p>
+        </field>
+    </record>
+</odoo>

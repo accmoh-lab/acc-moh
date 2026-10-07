@@ -39,6 +39,11 @@
                             <p><span t-field="o.objective"/></p>
                         </t>
 
+                        <t t-if="o.preparation_id and o.preparation_id.released">
+                            <h4>Preparation Report</h4>
+                            <div><span t-field="o.preparation_id.summary"/></div>
+                        </t>
+
                         <h4>Attendees</h4>
                         <table class="table table-sm">
                             <thead><tr><th>Name</th><th>Attendance</th></tr></thead>
@@ -87,6 +92,18 @@
                             <h4>Minutes</h4>
                             <div><span t-field="o.minutes"/></div>
                         </t>
+
+                        <h4>Decisions</h4>
+                        <table class="table table-sm">
+                            <thead><tr><th>Decision</th><th>Outcome</th><th>Details</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="o.decision_ids" t-as="d">
+                                    <td><span t-field="d.name"/></td>
+                                    <td><span t-field="d.outcome"/></td>
+                                    <td><span t-field="d.details"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
 
                         <h4>Action Items</h4>
                         <table class="table table-sm">

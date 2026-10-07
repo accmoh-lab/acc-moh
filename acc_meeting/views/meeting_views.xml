@@ -8,8 +8,10 @@
                 <field name="reference"/>
                 <field name="name"/>
                 <field name="meeting_type_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="business_unit_id" optional="show"/>
                 <field name="date_start"/>
-                <field name="organizer_id" widget="many2one_avatar_user"/>
+                <field name="organizer_id" widget="many2one_avatar_user" optional="show"/>
                 <field name="task_count" string="Action Items"/>
                 <field name="completion_rate" widget="progressbar" string="Completion"/>
                 <field name="state" widget="badge"
@@ -27,27 +29,35 @@
             <form>
                 <header>
                     <button name="action_confirm" string="Confirm &amp; Send Invitations" type="object"
-                            class="btn-primary" invisible="state != 'draft'"/>
+                            class="btn-primary" invisible="state != 'draft' or not is_leader"/>
                     <button name="action_load_items" string="Load Pending Items" type="object"
-                            invisible="state not in ('draft', 'scheduled')"
+                            invisible="state not in ('draft', 'scheduled') or not is_leader"
                             help="Loads the previous action items to review and the items escalated to this meeting level."/>
                     <button name="action_start" string="Start Meeting" type="object"
-                            class="btn-primary" invisible="state != 'scheduled'"/>
+                            class="btn-primary" invisible="state != 'scheduled' or not is_leader"/>
                     <button name="action_done" string="Close Meeting" type="object"
-                            class="btn-primary" invisible="state not in ('scheduled', 'in_progress')"
+                            class="btn-primary"
+                            invisible="state not in ('scheduled', 'in_progress') or not is_leader"
                             confirm="Close the meeting? Review results will be applied to the previous action items."/>
                     <button name="action_schedule_next" string="Schedule Next Meeting" type="object"
-                            class="btn-primary" invisible="state != 'done' or next_meeting_id"/>
+                            class="btn-primary" invisible="state != 'done' or next_meeting_id or not is_leader"/>
                     <button name="action_cancel" string="Cancel" type="object"
-                            invisible="state in ('done', 'cancelled')"
+                            invisible="state in ('done', 'cancelled') or not is_leader"
                             confirm="Cancel this meeting? The calendar invitation will be withdrawn."/>
                     <button name="action_draft" string="Set to Draft" type="object"
-                            invisible="state not in ('cancelled', 'scheduled')"/>
+                            invisible="state not in ('cancelled', 'scheduled') or not is_leader"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,scheduled,in_progress,done"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
+                        <button name="action_open_preparation" type="object" class="oe_stat_button"
+                                icon="fa-file-text-o" invisible="not preparation_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Preparation Report</span>
+                                <field name="prep_state" class="o_stat_value"/>
+                            </div>
+                        </button>
                         <button name="action_view_tasks" type="object" class="oe_stat_button"
                                 icon="fa-tasks" invisible="task_count == 0">
                             <field name="task_count" widget="statinfo" string="Action Items"/>
@@ -71,37 +81,50 @@
                         <field name="reference" class="text-muted"/>
                         <h1>
                             <field name="name" placeholder="Meeting subject"
-                                   readonly="state in ('done', 'cancelled')"/>
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
                         </h1>
                     </div>
                     <group>
                         <group string="Schedule">
+                            <field name="is_leader" invisible="1"/>
+                            <field name="scope" invisible="1"/>
                             <field name="meeting_type_id" options="{'no_create': True}"
-                                   readonly="state in ('done', 'cancelled')"/>
-                            <field name="date_start" readonly="state in ('done', 'cancelled')"/>
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
+                            <field name="department_id" options="{'no_create': True}"
+                                   invisible="scope != 'department'"
+                                   required="scope == 'department'"
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
+                            <field name="business_unit_id" options="{'no_create': True}"
+                                   invisible="scope != 'business_unit'"
+                                   required="scope == 'business_unit'"
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
+                            <field name="date_start" readonly="not is_leader or state in ('done', 'cancelled')"/>
                             <field name="duration" widget="float_time"
-                                   readonly="state in ('done', 'cancelled')"/>
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
                             <field name="date_stop"/>
-                            <field name="location" readonly="state in ('done', 'cancelled')"/>
+                            <field name="location" readonly="not is_leader or state in ('done', 'cancelled')"/>
                             <field name="online_link" widget="url"
-                                   readonly="state in ('done', 'cancelled')"/>
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
                         </group>
                         <group string="Roles">
                             <field name="organizer_id" widget="many2one_avatar_user"
-                                   readonly="state in ('done', 'cancelled')"/>
-                            <field name="chairperson_id" widget="many2one_avatar_user"/>
-                            <field name="secretary_id" widget="many2one_avatar_user"/>
-                            <field name="previous_meeting_id" readonly="state != 'draft'"/>
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
+                            <field name="chairperson_id" widget="many2one_avatar_user"
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
+                            <field name="secretary_id" widget="many2one_avatar_user"
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
+                            <field name="previous_meeting_id" readonly="not is_leader or state != 'draft'"/>
                             <field name="next_meeting_id" invisible="1"/>
+                            <field name="preparation_id" invisible="1"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
                     <notebook>
                         <page string="Agenda" name="agenda">
                             <field name="objective" placeholder="Objective of the meeting..."
-                                   readonly="state in ('done', 'cancelled')"/>
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
                             <field name="agenda_line_ids"
-                                   readonly="state in ('done', 'cancelled')">
+                                   readonly="not is_leader or state in ('done', 'cancelled')">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="name"/>
@@ -120,7 +143,8 @@
                             </group>
                         </page>
                         <page string="Attendees" name="attendees">
-                            <field name="attendee_ids" readonly="state in ('done', 'cancelled')">
+                            <field name="attendee_ids"
+                                   readonly="not is_leader or state in ('done', 'cancelled')">
                                 <list editable="bottom">
                                     <field name="partner_id"/>
                                     <field name="email" optional="show"/>
@@ -136,7 +160,8 @@
                                     <field name="followup_deviation_count" string="Deviations"/>
                                 </group>
                             </group>
-                            <field name="followup_ids" readonly="state in ('done', 'cancelled')">
+                            <field name="followup_ids"
+                                   readonly="not is_leader or state in ('done', 'cancelled')">
                                 <list editable="bottom" create="0"
                                       decoration-success="review_state == 'completed'"
                                       decoration-danger="review_state in ('delayed', 'cancelled')">
@@ -158,10 +183,25 @@
                         </page>
                         <page string="Minutes" name="minutes">
                             <field name="minutes" placeholder="Discussion summary and key points..."
-                                   readonly="state in ('done', 'cancelled')"/>
+                                   readonly="not is_leader or state in ('done', 'cancelled')"/>
+                        </page>
+                        <page string="Decisions" name="decisions">
+                            <field name="decision_ids"
+                                   readonly="not is_leader or state in ('draft', 'done', 'cancelled')">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="outcome" widget="badge"
+                                           decoration-success="outcome == 'approved'"
+                                           decoration-danger="outcome == 'rejected'"
+                                           decoration-warning="outcome == 'deferred'"/>
+                                    <field name="details"/>
+                                </list>
+                            </field>
                         </page>
                         <page string="Action Items" name="tasks">
-                            <field name="task_ids" readonly="state in ('draft', 'cancelled')">
+                            <field name="task_ids"
+                                   readonly="not is_leader or state in ('draft', 'cancelled')">
                                 <list editable="bottom">
                                     <field name="name"/>
                                     <field name="task_type"/>
@@ -199,10 +239,18 @@
             <search>
                 <field name="name" string="Meeting" filter_domain="['|', ('name', 'ilike', self), ('reference', 'ilike', self)]"/>
                 <field name="meeting_type_id"/>
+                <field name="department_id"/>
+                <field name="business_unit_id"/>
                 <field name="organizer_id"/>
                 <field name="attendee_ids" string="Attendee"/>
                 <filter name="my_meetings" string="My Meetings"
                         domain="[('allowed_user_ids', 'in', [uid])]"/>
+                <filter name="i_lead" string="Meetings I Lead"
+                        domain="[('leader_user_ids', 'in', [uid])]"/>
+                <separator/>
+                <filter name="scope_department" string="Department Level" domain="[('scope', '=', 'department')]"/>
+                <filter name="scope_business_unit" string="Business Unit Level" domain="[('scope', '=', 'business_unit')]"/>
+                <filter name="scope_board" string="Board Level" domain="[('scope', '=', 'board')]"/>
                 <separator/>
                 <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
                 <filter name="scheduled" string="Scheduled" domain="[('state', '=', 'scheduled')]"/>
@@ -212,6 +260,8 @@
                 <filter name="date_start" string="Date" date="date_start"/>
                 <group>
                     <filter name="group_type" string="Meeting Type" context="{'group_by': 'meeting_type_id'}"/>
+                    <filter name="group_department" string="Department" context="{'group_by': 'department_id'}"/>
+                    <filter name="group_business_unit" string="Business Unit" context="{'group_by': 'business_unit_id'}"/>
                     <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
                     <filter name="group_organizer" string="Organizer" context="{'group_by': 'organizer_id'}"/>
                     <filter name="group_month" string="Month" context="{'group_by': 'date_start:month'}"/>
@@ -225,10 +275,26 @@
         <field name="res_model">acc.meeting</field>
         <field name="view_mode">list,calendar,form</field>
         <field name="search_view_id" ref="view_acc_meeting_search"/>
+        <field name="context">{'search_default_my_meetings': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Schedule your first meeting</p>
-            <p>Prepare the agenda, invite the attendees, record the minutes and assign the action items.
-               The next meeting will automatically list the previous action items for review.</p>
+            <p>Prepare the agenda and the preparation report, invite the attendees, record the minutes,
+               decisions and action items. The next meeting will automatically list the previous action
+               items for review.</p>
+        </field>
+    </record>
+
+    <record id="action_acc_meeting_report" model="ir.actions.act_window">
+        <field name="name">Meeting Reports</field>
+        <field name="res_model">acc.meeting</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_acc_meeting_search"/>
+        <field name="domain">[('state', '=', 'done')]</field>
+        <field name="context">{'search_default_my_meetings': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No closed meetings yet</p>
+            <p>The report of a meeting (minutes, decisions and action items) appears here once the
+               meeting is closed. Open a meeting and use Print to get the PDF report.</p>
         </field>
     </record>
 </odoo>

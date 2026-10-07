@@ -29,6 +29,11 @@ msgid "A deviation reason is required for delayed or cancelled action items."
 msgstr "يلزم تحديد سبب الانحراف للبنود المتأخرة أو الملغاة."
 
 #. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting_preparation.py:0
+msgid "A meeting can have only one preparation report."
+msgstr "يمكن أن يكون للاجتماع تقرير تحضير واحد فقط."
+
+#. module: acc_meeting
 #: code:addons/acc_meeting/models/meeting.py:0
 msgid "A meeting cannot be its own predecessor."
 msgstr "لا يمكن أن يكون الاجتماع سابقًا لنفسه."
@@ -62,6 +67,7 @@ msgid "Action Items"
 msgstr "بنود المتابعة"
 
 #. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_business_unit__active
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_deviation_reason__active
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_type__active
 msgid "Active"
@@ -118,6 +124,11 @@ msgid "Applied"
 msgstr "تم التطبيق"
 
 #. module: acc_meeting
+#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_decision__outcome__approved
+msgid "Approved"
+msgstr "معتمد"
+
+#. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_attendee__attendance
 #: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document
 msgid "Attendance"
@@ -142,6 +153,21 @@ msgid "Authority Level"
 msgstr "مستوى الصلاحية"
 
 #. module: acc_meeting
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_preparation_form
+msgid "Back to Draft"
+msgstr "إعادة إلى مسودة"
+
+#. module: acc_meeting
+#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_type__scope__board
+msgid "Board"
+msgstr "مجلس الإدارة"
+
+#. module: acc_meeting
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_search
+msgid "Board Level"
+msgstr "مستوى مجلس الإدارة"
+
+#. module: acc_meeting
 #: model:acc.meeting.type,name:acc_meeting.meeting_type_board
 msgid "Board Meeting"
 msgstr "اجتماع مجلس الإدارة"
@@ -150,6 +176,30 @@ msgstr "اجتماع مجلس الإدارة"
 #: model:acc.meeting.deviation.reason,name:acc_meeting.deviation_reason_budget
 msgid "Budget or funding"
 msgstr "الميزانية أو التمويل"
+
+#. module: acc_meeting
+#: model:ir.model,name:acc_meeting.model_acc_business_unit
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__business_unit_id
+#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_type__scope__business_unit
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_search
+msgid "Business Unit"
+msgstr "وحدة النشاط"
+
+#. module: acc_meeting
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_search
+msgid "Business Unit Level"
+msgstr "مستوى وحدة النشاط"
+
+#. module: acc_meeting
+#: model:acc.meeting.type,name:acc_meeting.meeting_type_business_unit
+msgid "Business Unit Meeting"
+msgstr "اجتماع وحدة النشاط"
+
+#. module: acc_meeting
+#: model:ir.actions.act_window,name:acc_meeting.action_acc_business_unit
+#: model:ir.ui.menu,name:acc_meeting.menu_acc_business_unit
+msgid "Business Units"
+msgstr "وحدات النشاط"
 
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__calendar_event_id
@@ -273,19 +323,39 @@ msgid "Days Late"
 msgstr "أيام التأخير"
 
 #. module: acc_meeting
-#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_task__task_type__decision
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_decision__name
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_task__decision_id
+#: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document
 msgid "Decision"
 msgstr "قرار"
 
 #. module: acc_meeting
-#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_task_search
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__decision_count
+msgid "Decision Count"
+msgstr "عدد القرارات"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__decision_ids
+#: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_form
 msgid "Decisions"
 msgstr "القرارات"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__expected_decisions
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_preparation_form
+msgid "Decisions Expected from the Meeting"
+msgstr "القرارات المتوقعة من الاجتماع"
 
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_type__default_duration
 msgid "Default Duration (hours)"
 msgstr "المدة الافتراضية (ساعات)"
+
+#. module: acc_meeting
+#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_decision__outcome__deferred
+msgid "Deferred"
+msgstr "مؤجَّل"
 
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_task__delay_days
@@ -303,17 +373,30 @@ msgid "Delayed"
 msgstr "متأخر"
 
 #. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__department_id
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_followup__department_id
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_task__department_id
+#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_type__scope__department
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_followup_search
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_task_search
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_search
 msgid "Department"
 msgstr "القسم"
+
+#. module: acc_meeting
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_search
+msgid "Department Level"
+msgstr "مستوى القسم"
 
 #. module: acc_meeting
 #: model:acc.meeting.type,name:acc_meeting.meeting_type_department
 msgid "Department Meeting"
 msgstr "اجتماع القسم"
+
+#. module: acc_meeting
+#: model:ir.model.fields,help:acc_meeting.field_acc_meeting_type__scope
+msgid "Department meetings are tied to a company department, business unit meetings to a business unit, and board meetings to neither."
+msgstr "اجتماعات القسم ترتبط بأحد أقسام الشركة، واجتماعات وحدة النشاط ترتبط بوحدة نشاط، واجتماعات مجلس الإدارة لا ترتبط بأي منهما."
 
 #. module: acc_meeting
 #: model:ir.model.fields,help:acc_meeting.field_acc_meeting_task__department_id
@@ -334,8 +417,14 @@ msgstr "الوصف"
 
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_agenda__description
+#: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document
 msgid "Details"
 msgstr "التفاصيل"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_decision__details
+msgid "Details / Rationale"
+msgstr "التفاصيل / المبررات"
 
 #. module: acc_meeting
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_task_form
@@ -400,7 +489,9 @@ msgstr "منجز"
 
 #. module: acc_meeting
 #: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting__state__draft
+#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_preparation__state__draft
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_search
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_preparation_search
 msgid "Draft"
 msgstr "مسودة"
 
@@ -512,11 +603,6 @@ msgid "Excused"
 msgstr "معتذر"
 
 #. module: acc_meeting
-#: model:acc.meeting.type,name:acc_meeting.meeting_type_executive
-msgid "Executive Meeting"
-msgstr "اجتماع الإدارة العليا"
-
-#. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_task__followup_ids
 msgid "Follow-up History"
 msgstr "سجل المتابعة"
@@ -537,9 +623,14 @@ msgid "Followup Deviation Count"
 msgstr "عدد الانحرافات في المراجعة"
 
 #. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_business_unit__manager_id
+msgid "Head of Unit"
+msgstr "رئيس الوحدة"
+
+#. module: acc_meeting
 #: model:ir.model.fields,help:acc_meeting.field_acc_meeting_type__level
-msgid "Higher number = higher authority (e.g. Department 10, Management 20, Executive 30, Board 40). Items can only be escalated to a higher level."
-msgstr "الرقم الأعلى يعني صلاحية أعلى (مثال: القسم 10، الإدارة 20، الإدارة العليا 30، مجلس الإدارة 40). يمكن ترحيل البنود إلى مستوى أعلى فقط."
+msgid "Higher number = higher authority (e.g. Department 10, Business Unit 20, Board 30). Items can only be escalated to a higher level."
+msgstr "الرقم الأعلى يعني صلاحية أعلى (مثال: القسم 10، وحدة النشاط 20، مجلس الإدارة 30). يمكن ترحيل البنود إلى مستوى أعلى فقط."
 
 #. module: acc_meeting
 #: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_task__priority__1
@@ -562,6 +653,12 @@ msgstr "قيد التنفيذ (حسب الخطة)"
 #: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_attendee__attendance__invited
 msgid "Invited"
 msgstr "مدعو"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__is_leader
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__is_leader
+msgid "Is Leader"
+msgstr "قائد الاجتماع"
 
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_task__is_overdue
@@ -609,6 +706,16 @@ msgid "Last Reminder Date"
 msgstr "تاريخ آخر تذكير"
 
 #. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__leader_user_ids
+msgid "Leader User"
+msgstr "مستخدمو القيادة"
+
+#. module: acc_meeting
+#: model:ir.model.fields,help:acc_meeting.field_acc_meeting__allowed_user_ids
+msgid "Leaders, attendees and users with an action item from this meeting (used by record rules)."
+msgstr "القادة والحضور ومن لديهم بند متابعة من هذا الاجتماع (تستخدمه قواعد الصلاحيات)."
+
+#. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_agenda__task_id
 msgid "Linked Item"
 msgstr "البند المرتبط"
@@ -630,11 +737,6 @@ msgid "Location"
 msgstr "المكان"
 
 #. module: acc_meeting
-#: model:acc.meeting.type,name:acc_meeting.meeting_type_management
-msgid "Management Meeting"
-msgstr "اجتماع الإدارة"
-
-#. module: acc_meeting
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_task_form
 msgid "Mark as Done"
 msgstr "تحديد كمنجز"
@@ -643,7 +745,9 @@ msgstr "تحديد كمنجز"
 #: model:ir.model,name:acc_meeting.model_acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_agenda__meeting_id
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_attendee__meeting_id
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_decision__meeting_id
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_followup__meeting_id
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__meeting_id
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_task_search
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_search
 msgid "Meeting"
@@ -667,13 +771,19 @@ msgstr "حاضر الاجتماع"
 #. module: acc_meeting
 #: code:addons/acc_meeting/models/meeting.py:0
 #, python-format
-msgid "Meeting closed: %(tasks)s new action items, %(deviations)s deviations from previous actions."
-msgstr "تم إغلاق الاجتماع: %(tasks)s بند متابعة جديد، و%(deviations)s انحراف عن البنود السابقة."
+msgid "Meeting closed: %(decisions)s decisions, %(tasks)s new action items, %(deviations)s deviations from previous actions."
+msgstr "تم إغلاق الاجتماع: %(decisions)s قرار، و%(tasks)s بند متابعة جديد، و%(deviations)s انحراف عن البنود السابقة."
 
 #. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__meeting_date
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_followup_search
 msgid "Meeting Date"
 msgstr "تاريخ الاجتماع"
+
+#. module: acc_meeting
+#: model:ir.model,name:acc_meeting.model_acc_meeting_decision
+msgid "Meeting Decision"
+msgstr "قرار الاجتماع"
 
 #. module: acc_meeting
 #: model:ir.model,name:acc_meeting.model_acc_meeting_followup
@@ -681,14 +791,35 @@ msgid "Meeting Follow-up Line"
 msgstr "سطر متابعة الاجتماع"
 
 #. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_type__scope
+msgid "Meeting Level"
+msgstr "مستوى الاجتماع"
+
+#. module: acc_meeting
 #: model:ir.actions.report,name:acc_meeting.action_report_acc_meeting
 msgid "Meeting Minutes (PDF)"
 msgstr "محضر الاجتماع (PDF)"
 
 #. module: acc_meeting
+#: model:ir.model,name:acc_meeting.model_acc_meeting_preparation
+msgid "Meeting Preparation"
+msgstr "تحضير الاجتماع"
+
+#. module: acc_meeting
+#: model:ir.actions.act_window,name:acc_meeting.action_acc_meeting_report
+#: model:ir.ui.menu,name:acc_meeting.menu_acc_meeting_report
+msgid "Meeting Reports"
+msgstr "تقارير الاجتماعات"
+
+#. module: acc_meeting
 #: code:addons/acc_meeting/models/meeting.py:0
 msgid "Meeting scheduled. Invitations were sent to the attendees."
 msgstr "تمت جدولة الاجتماع وإرسال الدعوات للحضور."
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__meeting_state
+msgid "Meeting State"
+msgstr "حالة الاجتماع"
 
 #. module: acc_meeting
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_form
@@ -698,6 +829,7 @@ msgstr "موضوع الاجتماع"
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__meeting_type_id
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_followup__meeting_type_id
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__meeting_type_id
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_task__meeting_type_id
 #: model:ir.model,name:acc_meeting.model_acc_meeting_type
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_followup_search
@@ -720,6 +852,11 @@ msgid "Meetings"
 msgstr "الاجتماعات"
 
 #. module: acc_meeting
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_search
+msgid "Meetings I Lead"
+msgstr "اجتماعات أقودها"
+
+#. module: acc_meeting
 #: model:res.groups,name:acc_meeting.group_meeting_manager
 msgid "Meetings: Manager"
 msgstr "الاجتماعات: مدير"
@@ -728,6 +865,11 @@ msgstr "الاجتماعات: مدير"
 #: model:res.groups,name:acc_meeting.group_meeting_user
 msgid "Meetings: User"
 msgstr "الاجتماعات: مستخدم"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__member_user_ids
+msgid "Member User"
+msgstr "مستخدمو الحضور"
 
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__secretary_id
@@ -774,6 +916,7 @@ msgid "My Meetings"
 msgstr "اجتماعاتي"
 
 #. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_business_unit__name
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_deviation_reason__name
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_type__name
 #: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document
@@ -796,6 +939,11 @@ msgstr "الاجتماع التالي"
 #: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_task__priority__0
 msgid "Normal"
 msgstr "عادي"
+
+#. module: acc_meeting
+#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_decision__outcome__noted
+msgid "Noted"
+msgstr "للعلم"
 
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_followup__deviation_notes
@@ -851,6 +999,11 @@ msgid "Organizer"
 msgstr "المنظِّم"
 
 #. module: acc_meeting
+#: model:ir.model.fields,help:acc_meeting.field_acc_meeting__leader_user_ids
+msgid "Organizer, chairperson and minute taker (used by record rules)."
+msgstr "المنظِّم ورئيس الاجتماع ومسجّل المحضر (تستخدمه قواعد الصلاحيات)."
+
+#. module: acc_meeting
 #: model:res.groups,comment:acc_meeting.group_meeting_manager
 msgid "Organizes meetings, sees everything and manages configuration and reports."
 msgstr "ينظّم الاجتماعات، ويرى كل البيانات، ويدير الإعدادات والتقارير."
@@ -864,6 +1017,12 @@ msgstr "موعد الاستحقاق الأصلي"
 #: model:acc.meeting.deviation.reason,name:acc_meeting.deviation_reason_other
 msgid "Other"
 msgstr "أخرى"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_decision__outcome
+#: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document
+msgid "Outcome"
+msgstr "النتيجة"
 
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_agenda__outcome
@@ -912,6 +1071,48 @@ msgid "Postponed in meeting %(meeting)s from %(old)s to %(new)s. Reason: %(reaso
 msgstr "تم التأجيل في الاجتماع %(meeting)s من %(old)s إلى %(new)s. السبب: %(reason)s"
 
 #. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__prep_released
+msgid "Prep Released"
+msgstr "التحضير متاح للحضور"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__prep_reminder_sent
+msgid "Prep Reminder Sent"
+msgstr "تم إرسال تذكير التحضير"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__prep_state
+msgid "Prep State"
+msgstr "حالة التحضير"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__preparation_ids
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__preparation_id
+msgid "Preparation"
+msgstr "التحضير"
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting.py:0
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__summary
+#: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_form
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_preparation_form
+msgid "Preparation Report"
+msgstr "تقرير التحضير"
+
+#. module: acc_meeting
+#: model:ir.ui.menu,name:acc_meeting.menu_acc_meeting_preparation
+#: model:ir.actions.act_window,name:acc_meeting.action_acc_meeting_preparation
+msgid "Preparation Reports"
+msgstr "تقارير التحضير"
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting_preparation.py:0
+#, python-format
+msgid "Preparation: %s"
+msgstr "تحضير: %s"
+
+#. module: acc_meeting
 #: code:addons/acc_meeting/models/meeting.py:0
 msgid "Prepare the agenda before confirming the meeting."
 msgstr "جهّز جدول الأعمال قبل تأكيد الاجتماع."
@@ -950,6 +1151,22 @@ msgid "Priority"
 msgstr "الأولوية"
 
 #. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting_preparation.py:0
+msgid "Publish the preparation report"
+msgstr "انشر تقرير التحضير"
+
+#. module: acc_meeting
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_preparation_form
+msgid "Publish to Attendees"
+msgstr "نشر للحضور"
+
+#. module: acc_meeting
+#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_preparation__state__published
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_preparation_search
+msgid "Published"
+msgstr "منشور"
+
+#. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_followup__origin_meeting_id
 msgid "Raised in"
 msgstr "طُرح في"
@@ -970,6 +1187,21 @@ msgid "Reference"
 msgstr "المرجع"
 
 #. module: acc_meeting
+#: model:ir.model.fields.selection,name:acc_meeting.selection__acc_meeting_decision__outcome__rejected
+msgid "Rejected"
+msgstr "مرفوض"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__release_hours
+msgid "Released (hours before meeting)"
+msgstr "يتاح للحضور (ساعات قبل الاجتماع)"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__released_on
+msgid "Released On"
+msgstr "تاريخ الإتاحة"
+
+#. module: acc_meeting
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_task_form
 msgid "Reopen"
 msgstr "إعادة فتح"
@@ -978,6 +1210,12 @@ msgstr "إعادة فتح"
 #: model:ir.ui.menu,name:acc_meeting.menu_acc_meeting_reporting
 msgid "Reporting"
 msgstr "التقارير"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__required_from_members
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_preparation_form
+msgid "Required from Members Before the Meeting"
+msgstr "المطلوب من الأعضاء قبل الاجتماع"
 
 #. module: acc_meeting
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_task_form
@@ -997,6 +1235,11 @@ msgstr "المسؤول"
 #: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document
 msgid "Result"
 msgstr "النتيجة"
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_decision__task_ids
+msgid "Resulting Action Items"
+msgstr "بنود المتابعة الناتجة"
 
 #. module: acc_meeting
 #: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document
@@ -1037,13 +1280,29 @@ msgid "Scheduled"
 msgstr "مجدول"
 
 #. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__scope
+msgid "Scope"
+msgstr "المستوى"
+
+#. module: acc_meeting
 #: model:res.groups,comment:acc_meeting.group_meeting_user
 msgid "Sees the meetings they attend and the action items assigned to them."
 msgstr "يرى الاجتماعات التي يحضرها وبنود المتابعة المسندة إليه."
 
 #. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting.py:0
+msgid "Select the business unit of this business-unit-level meeting."
+msgstr "اختر وحدة النشاط لهذا الاجتماع."
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting.py:0
+msgid "Select the department of this department-level meeting."
+msgstr "اختر القسم لهذا الاجتماع."
+
+#. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_deviation_reason__sequence
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_agenda__sequence
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_decision__sequence
 msgid "Sequence"
 msgstr "الترتيب"
 
@@ -1051,6 +1310,11 @@ msgstr "الترتيب"
 #: code:addons/acc_meeting/models/meeting_followup.py:0
 msgid "Set a new due date for delayed action items."
 msgstr "حدّد موعد استحقاق جديدًا للبنود المتأخرة."
+
+#. module: acc_meeting
+#: model:ir.model.fields,help:acc_meeting.field_acc_meeting_preparation__released
+msgid "Set automatically when the report is published and the meeting is within the release window."
+msgstr "تُضبط تلقائيًا عند نشر التقرير ودخول الاجتماع في فترة الإتاحة."
 
 #. module: acc_meeting
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_form
@@ -1077,6 +1341,7 @@ msgstr "بدء الاجتماع"
 
 #. module: acc_meeting
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting__state
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__state
 #: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_task__state
 msgid "State"
 msgstr "الحالة"
@@ -1130,9 +1395,46 @@ msgid "The action item \"%(name)s\" was due on %(date)s and is still not complet
 msgstr "كان موعد استحقاق بند المتابعة \"%(name)s\" في %(date)s ولم يكتمل بعد. يرجى إنجازه أو توضيح سبب التأخير."
 
 #. module: acc_meeting
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_preparation_form
+msgid "The attendees see this report only after you publish it, and only when the meeting is within the release window shown below."
+msgstr "يرى الحضور هذا التقرير بعد نشره فقط، وعندما يدخل الاجتماع في فترة الإتاحة الموضحة أدناه."
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting_preparation.py:0
+#, python-format
+msgid "The meeting \"%s\" is within %s hours and its preparation report is not published."
+msgstr "الاجتماع \"%s\" يقع خلال %s ساعة، وتقرير التحضير الخاص به لم يُنشر."
+
+#. module: acc_meeting
+#: model:ir.model.fields,help:acc_meeting.field_acc_meeting_task__decision_id
+msgid "The meeting decision that this action item implements."
+msgstr "قرار الاجتماع الذي ينفذه بند المتابعة هذا."
+
+#. module: acc_meeting
 #: code:addons/acc_meeting/models/meeting.py:0
 msgid "The meeting duration must be greater than zero."
 msgstr "يجب أن تكون مدة الاجتماع أكبر من صفر."
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting_preparation.py:0
+msgid "The meeting is already closed or cancelled."
+msgstr "الاجتماع مغلق أو ملغي بالفعل."
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting_preparation.py:0
+#, python-format
+msgid "The preparation report for \"%s\" is now available to the attendees."
+msgstr "تقرير التحضير للاجتماع \"%s\" متاح الآن للحضور."
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting.py:0
+msgid "The preparation report is not available yet."
+msgstr "تقرير التحضير غير متاح بعد."
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting_preparation.py:0
+msgid "The report is already visible to the attendees and cannot be withdrawn."
+msgstr "التقرير ظاهر للحضور بالفعل ولا يمكن سحبه."
 
 #. module: acc_meeting
 #: code:addons/acc_meeting/models/meeting_followup.py:0
@@ -1178,14 +1480,30 @@ msgid "Urgent"
 msgstr "عاجل"
 
 #. module: acc_meeting
-#: model:ir.model.fields,help:acc_meeting.field_acc_meeting__allowed_user_ids
-msgid "Users who can see this meeting (used by record rules)."
-msgstr "المستخدمون الذين يمكنهم رؤية هذا الاجتماع (تستخدمه قواعد الصلاحيات)."
+#: model:ir.model.fields,help:acc_meeting.field_acc_meeting__member_user_ids
+msgid "Users who are listed as attendees (used by record rules)."
+msgstr "المستخدمون المدرجون ضمن الحضور (تستخدمه قواعد الصلاحيات)."
+
+#. module: acc_meeting
+#: model:ir.model.fields,field_description:acc_meeting.field_acc_meeting_preparation__released
+#: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_preparation_search
+msgid "Visible to Attendees"
+msgstr "ظاهر للحضور"
 
 #. module: acc_meeting
 #: model_terms:ir.ui.view,arch_db:acc_meeting.view_acc_meeting_task_escalate_form
 msgid "Why does this need a higher-level decision?"
 msgstr "لماذا يحتاج هذا البند إلى قرار من مستوى أعلى؟"
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting.py:0
+msgid "Write the meeting minutes before closing the meeting."
+msgstr "اكتب محضر الاجتماع قبل إغلاقه."
+
+#. module: acc_meeting
+#: code:addons/acc_meeting/models/meeting_preparation.py:0
+msgid "Write the preparation report before publishing it."
+msgstr "اكتب تقرير التحضير قبل نشره."
 
 #. module: acc_meeting
 #: model_terms:ir.ui.view,arch_db:acc_meeting.report_acc_meeting_document

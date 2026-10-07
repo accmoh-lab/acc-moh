@@ -6,6 +6,11 @@
     <menuitem id="menu_acc_meeting" name="Meetings" parent="menu_acc_meeting_root"
               action="action_acc_meeting" sequence="10"/>
 
+    <menuitem id="menu_acc_meeting_preparation" name="Preparation Reports" parent="menu_acc_meeting_root"
+              action="action_acc_meeting_preparation" sequence="15"/>
+    <menuitem id="menu_acc_meeting_report" name="Meeting Reports" parent="menu_acc_meeting_root"
+              action="action_acc_meeting_report" sequence="18"/>
+
     <menuitem id="menu_acc_meeting_tasks" name="Action Items" parent="menu_acc_meeting_root"
               sequence="20"/>
     <menuitem id="menu_acc_meeting_task_my" name="My Action Items" parent="menu_acc_meeting_tasks"
@@ -33,6 +38,8 @@
               sequence="90" groups="group_meeting_manager"/>
     <menuitem id="menu_acc_meeting_type" name="Meeting Types" parent="menu_acc_meeting_config"
               action="action_acc_meeting_type" sequence="10"/>
+    <menuitem id="menu_acc_business_unit" name="Business Units" parent="menu_acc_meeting_config"
+              action="action_acc_business_unit" sequence="15"/>
     <menuitem id="menu_acc_meeting_deviation_reason" name="Deviation Reasons"
               parent="menu_acc_meeting_config" action="action_acc_meeting_deviation_reason" sequence="20"/>
 </odoo>

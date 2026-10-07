@@ -40,7 +40,7 @@ class AccMeetingFollowup(models.Model):
     @api.depends('task_id.state')
     def _compute_review_state(self):
         for line in self:
-            if line.task_id.state == 'done':
+            if line.sudo().task_id.state == 'done':
                 line.review_state = 'completed'
             elif line.review_state == 'completed':
                 line.review_state = False
@@ -75,7 +75,8 @@ class AccMeetingFollowup(models.Model):
     def _apply_review(self):
         """Write the review result back on the action items (called when the meeting closes)."""
         for line in self.filtered(lambda l: not l.applied and l.review_state):
-            task = line.task_id
+            # the closing leader may not be a member of the meeting that raised the item
+            task = line.task_id.sudo()
             if line.review_state == 'completed':
                 task.action_done()
             elif line.review_state == 'in_progress':

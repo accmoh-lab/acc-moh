@@ -57,6 +57,8 @@
                             <field name="assignee_id" widget="many2one_avatar_user"/>
                             <field name="priority"/>
                             <field name="meeting_id"/>
+                            <field name="decision_id" domain="[('meeting_id', '=', meeting_id)]"
+                                   invisible="not meeting_id"/>
                         </group>
                         <group>
                             <field name="date_deadline"/>
@@ -145,7 +147,6 @@
                 <filter name="postponed" string="Postponed" domain="[('postponement_count', '&gt;', 0)]"/>
                 <separator/>
                 <filter name="type_task" string="Tasks" domain="[('task_type', '=', 'task')]"/>
-                <filter name="type_decision" string="Decisions" domain="[('task_type', '=', 'decision')]"/>
                 <filter name="type_issue" string="Issues" domain="[('task_type', '=', 'issue')]"/>
                 <group>
                     <filter name="group_assignee" string="Responsible" context="{'group_by': 'assignee_id'}"/>

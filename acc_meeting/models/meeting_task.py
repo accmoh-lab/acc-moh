@@ -18,7 +18,7 @@ class AccMeetingTask(models.Model):
     name = fields.Char(string='Title', required=True, tracking=True)
     description = fields.Html()
     task_type = fields.Selection(
-        [('task', 'Task'), ('decision', 'Decision'), ('issue', 'Issue')],
+        [('task', 'Task'), ('issue', 'Issue')],
         string='Type', default='task', required=True,
     )
     meeting_id = fields.Many2one(
@@ -27,6 +27,10 @@ class AccMeetingTask(models.Model):
     meeting_type_id = fields.Many2one(related='meeting_id.meeting_type_id', store=True)
     meeting_date = fields.Datetime(related='meeting_id.date_start', store=True)
     agenda_line_ids = fields.One2many('acc.meeting.agenda', 'task_id', string='Agenda Items')
+    decision_id = fields.Many2one(
+        'acc.meeting.decision', string='Decision', ondelete='set null',
+        help='The meeting decision that this action item implements.',
+    )
 
     assignee_id = fields.Many2one(
         'res.users', string='Responsible', required=True, tracking=True,
@@ -218,7 +222,7 @@ class AccMeetingTask(models.Model):
                 'escalation_reason': reason,
                 'escalation_date': fields.Date.context_today(task),
             })
-            upcoming = Meeting.search([
+            upcoming = Meeting.sudo().search([
                 ('meeting_type_id', '=', meeting_type.id),
                 ('state', 'in', ('draft', 'scheduled')),
                 ('date_start', '>=', fields.Datetime.now()),
