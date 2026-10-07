@@ -9,3 +9,4 @@ app/data/
 *.db-wal
 *.db-shm
 .env
+*.zip
