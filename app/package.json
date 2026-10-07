@@ -9,6 +9,7 @@
     "start": "node --no-warnings server.js",
     "seed": "node --no-warnings src/seed.js --reset",
     "test": "node --no-warnings --test tests/api.test.js",
-    "test:e2e": "node --no-warnings tests/e2e.js"
+    "test:e2e": "node --no-warnings tests/e2e.js",
+    "test:load": "node --no-warnings tests/load.js"
   }
 }

@@ -255,3 +255,4 @@ details.acc{border:1px solid var(--line);border-radius:10px;background:var(--sur
 h2 .ic{width:20px;height:20px;color:var(--brand-2)}
 .item>.ic{margin-top:3px;color:var(--ink-3)}
 .state .ic{width:44px;height:44px}
+.breakdown td:nth-child(1),.breakdown td:nth-child(3){white-space:nowrap}

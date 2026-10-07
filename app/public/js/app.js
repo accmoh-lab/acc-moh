@@ -93,7 +93,7 @@ function renderShell() {
     <aside class="sidebar" id="sb" aria-label="القائمة الرئيسية">
       <div class="brand"><div class="logo">${icon('perf')}</div><div><b>منصة الإدارة والأداء</b><small>فاست تريد</small></div></div>
       <nav class="nav">${main.map(link).join('')}${mgmt.length ? '<div class="nav-group">الإدارة والمتابعة</div>' + mgmt.map(link).join('') : ''}</nav>
-      <div class="side-foot"><div class="who">${esc(me.name)}</div><div class="muted" style="color:#8f9bc4">${esc(L.role[me.system_role])} · ${esc(me.dept || me.org_unit || '')}</div>
+      <div class="side-foot"><div class="who">${esc(me.name)}</div><div class="muted" style="color:#8f9bc4">${esc(me.system_role === 'employee' && me.is_board ? (me.roles.includes('board_secretary') ? 'أمين سر المجلس' : 'عضو مجلس الإدارة') : L.role[me.system_role])} · ${esc(me.dept || me.org_unit || '')}</div>
         <div class="row" style="margin-top:10px"><a href="#/profile" class="btn sm" style="background:#1b2650;color:#fff;border-color:#2b3a72">${icon('user')} ملفي</a><button class="btn sm" id="theme" style="background:#1b2650;color:#fff;border-color:#2b3a72" aria-label="تبديل المظهر">${icon('moon')}</button><button class="btn sm" data-act="logout" style="background:#1b2650;color:#fff;border-color:#2b3a72" aria-label="خروج">${icon('logout')}</button></div></div>
     </aside><div class="scrim only-mobile" id="scrim" hidden></div>
     <div class="main"><header class="topbar">

@@ -106,13 +106,15 @@ async function org(ctx) {
   el.innerHTML = `${pageHead(`أداء: ${d.unit.name}`, `${esc(L.level[d.unit.kind])} — تتبع من المجموعة حتى الموظف`, `<a class="btn" href="#/tasks?view=${d.unit.kind === 'business_unit' ? 'business_unit&bu_id=' + d.unit.id : 'department&dept_id=' + d.unit.id}">مهام الوحدة</a><a class="btn" href="#/kpis?org_id=${d.unit.id}">مؤشرات الوحدة</a>`, d.path.map(p => p.id === d.unit.id ? esc(p.name) : `<a href="#/performance/org/${p.id}${qs({ period: query.period })}">${esc(p.name)}</a>`).join(' / '))}
    <div class="filters">${periodSel(pers, sc.period.key)}${sc.source === 'snapshot' ? pill(`Snapshot v${sc.snapshot_version}`, 'gray') : pill('حيّ', 'blue')}</div>
    <div class="grid g-main"><div class="stack">
-     <div class="card"><header><h3>الأداء العام</h3></header><div class="row" style="gap:18px">${ring(s)}<div>${delta(s, d.previous.performance_score ?? d.previous.calculated_score)}</div></div></div>
+     <div class="card"><header><h3>الأداء العام</h3></header><div class="row" style="gap:18px">${ring(s)}<div>${delta(s, d.previous.performance_score ?? d.previous.calculated_score)}${d.children.length ? `<div class="small" style="margin-top:6px">متوسط الوحدات التابعة: <b>${num(avgChildren(d.children))}</b></div><div class="tiny muted">درجة الوحدة تحتسب مؤشراتها المباشرة ومهام موظفيها، ولا تكرر مؤشرات الوحدات التابعة (تجنب Double Counting).</div>` : ''}</div></div></div>
      ${d.children.length ? `<div class="card"><header><h3>الوحدات التابعة</h3><span class="muted small more">اضغط للتعمق</span></header><div class="tablewrap"><table><thead><tr><th>الوحدة</th><th>الإجمالي</th><th>مالي</th><th>تشغيلي</th><th>المهام</th><th>إجراءات الاجتماعات</th></tr></thead><tbody>${d.children.map(c => { const g = k => c.components.find(x => x.key === k)?.score; return `<tr class="link" data-href="#/performance/org/${c.id}${qs({ period: query.period })}"><td class="title">${esc(c.name)} <span class="sub">${esc(L.level[c.kind])}</span></td><td>${c.performance_score === null ? '—' : `<div class="row" style="gap:6px;flex-wrap:nowrap">${bar(c.performance_score, scoreCls(c.performance_score))}<b><bdi class="num">${c.performance_score}</bdi></b></div>`}</td><td>${num(g('kpi_financial'))}</td><td>${num(g('kpi_operational'))}</td><td>${num(g('tasks'))}</td><td>${num(g('meeting_actions'))}</td></tr>`; }).join('')}</tbody></table></div></div>` : ''}
      ${d.employees.length ? `<div class="card"><header><h3>الموظفون</h3></header><div class="list">${d.employees.map(e => `<a class="item" href="#/performance/employee/${e.id}${qs({ period: query.period })}"><div class="grow"><span class="t">${esc(e.name)}</span><span class="small muted">${esc(e.job_title)}</span></div><b>${num(e.calculated_score)}</b></a>`).join('')}</div></div>` : ''}
      <div class="card"><header><h3>تفصيل الدرجة</h3></header>${breakdown(sc)}</div>
    </div><div class="stack"><div class="card"><header><h3>مؤشرات الوحدة</h3></header>${kpiTable(sc)}</div></div></div>`;
   bindPeriod(el, `#/performance/org/${d.unit.id}`);
 }
+
+const avgChildren = c => { const v = c.map(x => x.performance_score).filter(x => x !== null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length * 10) / 10 : null; };
 
 // ---------- فترات الأداء ----------
 async function periodsPage(ctx) {
