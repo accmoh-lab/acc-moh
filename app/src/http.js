@@ -37,6 +37,11 @@ const SEC_HEADERS = {
 };
 if (process.env.HTTPS === '1') SEC_HEADERS['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
 
+// خلف Reverse Proxy (Render/Nginx) نأخذ عنوان المستخدم الحقيقي من X-Forwarded-For عند TRUST_PROXY=1
+function clientIp(req) {
+  if (process.env.TRUST_PROXY === '1') { const f = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); if (f) return f; }
+  return req.socket.remoteAddress || '';
+}
 function send(res, status, body, headers = {}) {
   const isBuf = Buffer.isBuffer(body);
   const data = isBuf || typeof body === 'string' ? body : JSON.stringify(body);
@@ -69,7 +74,7 @@ async function handle(req, res) {
         if (ct.includes('application/json') && raw.length) { try { body = JSON.parse(raw.toString('utf8')); } catch { throw new HttpError(400, 'صيغة الطلب غير صحيحة.', 'BAD_JSON'); } }
       }
       const query = Object.fromEntries(url.searchParams);
-      const out = await r.handler({ user, params, query, body, raw, req, res, cookies, ip: req.socket.remoteAddress || '' });
+      const out = await r.handler({ user, params, query, body, raw, req, res, cookies, ip: clientIp(req) });
       if (req.method !== 'GET') require('./cache').bump();
       if (out && out.__raw) { res.writeHead(out.status || 200, { ...SEC_HEADERS, ...out.headers }); res.end(out.body); }
       else {

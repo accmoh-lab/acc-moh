@@ -1,0 +1,33 @@
+# إعداد النشر على Render (Blueprint). نسخة عرض تجريبية ببيانات وهمية.
+services:
+  - type: web
+    name: acc-moh-platform
+    runtime: node
+    rootDir: app
+    plan: starter            # القرص الدائم (Disk) يحتاج خطة مدفوعة
+    buildCommand: node -v
+    startCommand: node --no-warnings server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22.12.0"
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: Africa/Cairo
+      - key: HTTPS
+        value: "1"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DEMO_MODE         # 1 = تظهر الحسابات التجريبية للجميع. اجعلها 0 قبل أي بيانات حقيقية
+        value: "1"
+      - key: AUTO_SEED         # ينشئ بيانات Demo عند أول تشغيل فقط
+        value: "1"
+      - key: DB_PATH
+        value: /var/data/app.db
+      - key: FILES_DIR
+        value: /var/data/files
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
