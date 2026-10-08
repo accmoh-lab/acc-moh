@@ -47,7 +47,7 @@ const SPEC = { metric: 'enum:req:revenue|gross_profit|gross_margin|ebitda|collec
 function guardPeriod(key) { kpiEngine.assertPeriodEditable(key); }
 H.post('/api/targets', ({ user, body }) => createTarget(user, body));
 function createTarget(user, body) {
-  const d = need({ currency: setting('base_currency', 'EGP'), data_source: 'manual', ...body }, SPEC);
+  const d = need({ currency: setting('base_currency', 'EGP'), data_source: 'manual', lower_is_better: false, ...body }, SPEC);
   const p = periods.parseKey(d.period_key); if (!p) throw bad('الفترة غير صحيحة (مثال: 2026-09 أو 2026-Q3).', { period_key: 'غير صحيحة' });
   if (!canEditFin(user, d.org_unit_id)) throw forbidden();
   if (!rbac.orgs().has(d.org_unit_id)) throw bad('الوحدة غير موجودة.');

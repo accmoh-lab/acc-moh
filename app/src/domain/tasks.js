@@ -122,7 +122,7 @@ function validateTask(user, d, t) {
 }
 H.post('/api/tasks', ({ user, body }) => createTask(user, body));
 function createTask(user, body) {
-  const d = need({ source: 'operational', priority: 'medium', weight: 1, recurrence: 'none', ...body }, SPEC);
+  const d = need({ source: 'operational', priority: 'medium', weight: 1, recurrence: 'none', evidence_required: false, requires_approval: false, ...body }, SPEC);
   const owner = validateTask(user, d);
   let m = null;
   if (d.meeting_id) {

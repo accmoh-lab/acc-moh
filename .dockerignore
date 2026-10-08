@@ -1,0 +1,8 @@
+.git
+acc_meeting
+docs
+*.zip
+app/data
+app/node_modules
+**/*.db
+**/*.db-*

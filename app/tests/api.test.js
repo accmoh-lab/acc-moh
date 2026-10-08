@@ -324,6 +324,16 @@ test('management attention lists exceptions with severity, owner, age, source an
   const home = (await G('omar', '/home')).j;
   assert.ok(home.executive && home.executive.bu.length === 2 && home.executive.financial.achievement > 0);
 });
+test('minimal API payloads use defaults (task without flags, CSV import of tasks and targets)', async () => {
+  for (const u of ['sami', 'omar']) await login(u);
+  const t = await P('sami', '/tasks', { title: 'مهمة بأقل الحقول', owner_id: emp('E020').id, due_date: addDays(4) });
+  assert.equal(t.s, 200, t.txt);
+  const row = db.get('SELECT * FROM tasks WHERE id = ?', t.j.id); assert.equal(row.requires_approval, 0); assert.equal(row.evidence_required, 0);
+  const tc = 'title,owner_emp_no,due_date,start_date,priority,source,description,kpi_code,reviewer_emp_no\nمهمة مستوردة,E040,' + addDays(9) + ',,high,operational,,,';
+  assert.equal((await P('sami', '/import/tasks/commit', { csv: tc })).j.created, 1);
+  const fc = 'metric,label,org_code,period_key,currency,target,actual\nrevenue,إيرادات مستوردة,DEPT-SALES,2026-11,EGP,5000000,';
+  assert.equal((await P('omar', '/import/targets/commit', { csv: fc })).j.created, 1);
+});
 test('API errors never expose technical details', async () => {
   await login('omar');
   const r = await G('omar', '/meetings/abc');

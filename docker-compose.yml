@@ -1,0 +1,14 @@
+# تشغيل محلي أو على خادم خاص:  docker compose up -d   ثم افتح http://localhost:3000
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      HTTPS: "0"            # اجعلها 1 عند التشغيل خلف HTTPS
+      DEMO_MODE: "1"        # اجعلها 0 قبل إدخال بيانات حقيقية
+    volumes:
+      - acc-data:/data
+    restart: unless-stopped
+volumes:
+  acc-data:

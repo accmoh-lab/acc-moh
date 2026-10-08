@@ -16,6 +16,23 @@ npm run seed                      # إنشاء قاعدة البيانات وب�
 DEMO_MODE=1 npm start             # http://localhost:3000
 ```
 
+## التشغيل بـDocker
+
+```bash
+docker compose up -d --build      # ثم افتح http://localhost:3000
+```
+
+البيانات تُحفظ في Volume باسم `acc-data`، وتبقى بعد إعادة التشغيل.
+
+## النشر على Railway
+
+1. **New Project ← GitHub Repository ← accmoh-lab/acc-moh**.
+2. **Settings ← Source ← Branch:** اختر الفرع الذي يحتوي على التطبيق. اترك **Root Directory** فارغًا؛ Railway سيقرأ `Dockerfile` و`railway.json` تلقائيًا.
+3. **Settings ← Networking ← Generate Domain** بالمنفذ الظاهر في سطر `listening` في الـLogs (عادة 3000 أو 8080).
+4. (للاحتفاظ بالبيانات) أضف **Volume** بمسار `/data`.
+
+القيم الافتراضية لنسخة العرض موجودة داخل `Dockerfile`، ويمكن تغييرها من **Variables**. قبل أي بيانات حقيقية: `DEMO_MODE=0`.
+
 ## الحسابات التجريبية (Demo Mode فقط)
 
 كلمة المرور الموحدة: `Demo@2026!` — وتظهر أزرار دخول سريع في صفحة الدخول عند `DEMO_MODE=1`.
