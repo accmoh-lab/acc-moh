@@ -262,7 +262,7 @@ function seed() {
     // (4) اجتماع مبيعات أونلاين خلال دقائق
     const soon = new Date(Date.now() + 20 * 60000); const p2 = n => String(n).padStart(2, '0');
     const soonDate = fmtDate(soon), soonTime = `${p2(soon.getHours())}:${p2(soon.getMinutes())}`;
-    const m4 = mtg('sales_online', { title: 'اجتماع المبيعات — متابعة الخطة التصحيحية', type: 'department', leader: 'E020', dept: 'DEPT-SALES', parts: salesParts, sec: 'E030', date: soonDate, time: soonTime, dur: 45, mode: 'online', provider: 'google_meet', url: 'https://meet.google.example/mock/sales-sync', obj: 'مراجعة تقدم الخطة التصحيحية وتوزيع الأهداف على الفريق', prev: m2, rec: 'weekly', series: 'sales-wk', status: 'ready',
+    const m4 = mtg('sales_online', { title: 'اجتماع المبيعات — متابعة الخطة التصحيحية', type: 'department', leader: 'E020', dept: 'DEPT-SALES', parts: salesParts, sec: 'E030', date: soonDate, time: soonTime, dur: 45, mode: 'online', provider: 'none', url: `https://meet.jit.si/FastTrade-SalesSync-${crypto.randomBytes(3).toString('hex')}`, obj: 'مراجعة تقدم الخطة التصحيحية وتوزيع الأهداف على الفريق', prev: m2, rec: 'weekly', series: 'sales-wk', status: 'ready',
       agenda: [{ t: 'حالة الخطة التصحيحية', p: 'E020', type: 'follow_up', m: 15, kpi: 'REV_M', prep: 'اقرأ ملخص الخطة قبل الاجتماع' }, { t: 'أهداف الزيارات الأسبوع القادم', p: 'E031', type: 'discussion', m: 15 }, { t: 'سقف الخصم وأثره', p: 'E020', type: 'information', m: 10, kpi: 'DISC_RNG' }] });
     db.update('meetings', m4, { prep_pack: JSON.stringify(meetings.buildPack(db.get('SELECT * FROM meetings WHERE id = ?', m4))), prep_published_at: now, prep_released_at: now });
 

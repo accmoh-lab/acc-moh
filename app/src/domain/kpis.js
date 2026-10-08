@@ -41,6 +41,7 @@ function dto(k, r) {
 
 H.get('/api/kpis', ({ user, query }) => {
   const w = [rbac.kpiVisibilitySql(user)]; const p = [];
+  w.push(query.archived === '1' ? `k.approval_status = 'retired'` : `k.approval_status <> 'retired'`);
   const eq = (c, v) => { if (v) { w.push(`${c} = ?`); p.push(v); } };
   eq('k.level', query.level); eq('k.category', query.category); eq('k.owner_id', query.owner_id); eq('k.employee_id', query.employee_id);
   if (query.mine === '1') { w.push('(k.owner_id = ? OR k.data_owner_id = ? OR k.employee_id = ?)'); p.push(user.id, user.id, user.id); }
@@ -68,7 +69,7 @@ H.get('/api/kpis/:id', ({ user, params, query }) => {
     tasks: db.all(`SELECT t.id, t.code, t.title, t.status, t.due_date, t.progress, o.name owner_name FROM tasks t JOIN employees o ON o.id = t.owner_id WHERE t.kpi_id = ? AND ${rbac.taskVisibilitySql(user)} ORDER BY t.due_date`, k.id),
     meetings: db.all(`SELECT DISTINCT m.id, m.code, m.title, m.meeting_date, m.status FROM agenda_items a JOIN meetings m ON m.id = a.meeting_id WHERE a.related_kpi_id = ? AND ${rbac.meetingVisibilitySql(user)} ORDER BY m.meeting_date DESC`, k.id),
     initiatives: db.all(`SELECT i.id, i.code, i.title, i.status FROM initiative_kpis ik JOIN initiatives i ON i.id = ik.initiative_id WHERE ik.kpi_id = ? AND ${rbac.initiativeVisibilitySql(user)}`, k.id),
-    can_edit: canEditDef(user, k), can_enter: canEnterData(user, k),
+    can_edit: canEditDef(user, k), can_enter: canEnterData(user, k) && k.approval_status !== 'retired',
     can_verify: !user.isAdmin && (k.reviewer_id === user.id || canEditDef(user, k)),
   };
 });
@@ -83,6 +84,7 @@ const SPEC = {
 };
 const AUDITED = ['target', 'formula', 'weight', 'owner_id', 'green_min', 'amber_min', 'kpi_type', 'range_min', 'range_max', 'data_owner_id', 'reviewer_id'];
 function checkKpi(d, id) {
+  d.unit = d.unit ?? '';
   if (!/^[A-Z][A-Z0-9_]*$/.test(d.code)) throw bad('رمز KPI يتكون من أحرف إنجليزية كبيرة وأرقام و _ ويبدأ بحرف.', { code: 'صيغة غير صحيحة' });
   if (db.get('SELECT 1 x FROM kpis WHERE code = ? AND id <> ?', d.code, id || 0)) throw conflict('رمز KPI مستخدم بالفعل.', 'DUPLICATE');
   if (d.level === 'employee' ? !d.employee_id : !d.org_unit_id) throw bad(d.level === 'employee' ? 'اختر الموظف المرتبط بالمؤشر.' : 'اختر الوحدة التنظيمية.');
@@ -170,6 +172,47 @@ H.get('/api/kpis-weights/:org', ({ user, params }) => {
   const org = Number(params.org); if (!(user.isExec || user.isHR || rbac.inScope(user, org))) throw forbidden();
   const rows = db.all(`SELECT category, SUM(weight) w, COUNT(*) n FROM kpis WHERE org_unit_id = ? AND deleted_at IS NULL AND approval_status = 'approved' GROUP BY category`, org);
   return rows;
+});
+
+// ---- أرشفة / استعادة / حذف مؤشر ----
+function dependents(k) {
+  const children = db.all(`SELECT code FROM kpis WHERE parent_kpi_id = ? AND deleted_at IS NULL AND approval_status <> 'retired'`, k.id).map(r => r.code);
+  const formulas = db.all(`SELECT code, formula FROM kpis WHERE kpi_type = 'formula' AND deleted_at IS NULL AND approval_status <> 'retired' AND id <> ?`, k.id).filter(f => engine.formulaCodes(f.formula).includes(k.code)).map(f => f.code);
+  return { children, formulas };
+}
+H.post('/api/kpis/:id/archive', ({ user, params, body }) => {
+  const k = loadKpi(user, params.id);
+  if (!canEditDef(user, k)) throw forbidden('أرشفة المؤشر لمالكه أو لمدير ضمن النطاق.');
+  if (k.approval_status === 'retired') throw conflict('المؤشر مؤرشف بالفعل.');
+  const dep = dependents(k);
+  if (dep.children.length || dep.formulas.length) throw conflict(`لا يمكن أرشفة المؤشر: تعتمد عليه مؤشرات أخرى (${[...dep.children, ...dep.formulas].join('، ')}). أرشفها أو عدّلها أولًا.`, 'HAS_DEPENDENTS');
+  db.update('kpis', k.id, { approval_status: 'retired', effective_to: k.effective_to || today(), updated_at: nowIso() });
+  audit.log(user.id, 'kpi', k.id, 'archive', 'approval_status', k.approval_status, 'retired', body.reason || null);
+  return { ok: true };
+});
+H.post('/api/kpis/:id/restore', ({ user, params, body }) => {
+  const k = loadKpi(user, params.id);
+  if (!canEditDef(user, k)) throw forbidden();
+  if (k.approval_status !== 'retired') throw conflict('المؤشر غير مؤرشف.');
+  db.update('kpis', k.id, { approval_status: 'approved', effective_to: null, updated_at: nowIso() });
+  audit.log(user.id, 'kpi', k.id, 'restore', 'approval_status', 'retired', 'approved', body.reason || null);
+  return { ok: true };
+});
+// الحذف النهائي فقط لمؤشر بلا نتائج أو روابط؛ غير ذلك أرشفة حفاظًا على التاريخ
+H.del('/api/kpis/:id', ({ user, params }) => {
+  const k = loadKpi(user, params.id);
+  if (!canEditDef(user, k)) throw forbidden('حذف المؤشر لمالكه أو لمدير ضمن النطاق.');
+  const dep = dependents(k);
+  const refs = db.get(`SELECT (SELECT COUNT(*) FROM kpi_results WHERE kpi_id = :k AND actual IS NOT NULL) r,
+    (SELECT COUNT(*) FROM tasks WHERE kpi_id = :k) + (SELECT COUNT(*) FROM agenda_items WHERE related_kpi_id = :k) + (SELECT COUNT(*) FROM meeting_kpis WHERE kpi_id = :k)
+    + (SELECT COUNT(*) FROM initiative_kpis WHERE kpi_id = :k) + (SELECT COUNT(*) FROM financial_targets WHERE related_kpi_id = :k) + (SELECT COUNT(*) FROM kpis WHERE parent_kpi_id = :k) l`.replace(/:k/g, String(Number(k.id))));
+  if (refs.r || refs.l || dep.formulas.length) throw conflict(`لا يمكن حذف المؤشر نهائيًا: له ${refs.r} نتيجة مسجلة و${refs.l + dep.formulas.length} ارتباط (اجتماعات/مهام/مبادرات/مؤشرات). استخدم الأرشفة للحفاظ على التاريخ.`, 'HAS_HISTORY');
+  db.tx(() => {
+    db.run('DELETE FROM kpi_results WHERE kpi_id = ?', k.id);
+    db.run('DELETE FROM kpis WHERE id = ?', k.id);
+    audit.log(user.id, 'kpi', k.id, 'delete', 'code', `${k.code} — ${k.name}`, null);
+  });
+  return { ok: true };
 });
 
 module.exports = { createKpi, canEnterData, dueKey, dto, CAT_AR, TYPE_AR, loadKpi };

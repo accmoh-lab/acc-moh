@@ -50,7 +50,7 @@ async function main() {
   });
   await step('A3 join meeting (mock clearly labelled)', async () => {
     await A.page.locator('[data-act="join"]').first().click(); await A.page.waitForSelector('.modal');
-    const t = await A.page.$eval('.modal', e => e.innerText); expect(/لم يُتحقق|تجريبي/.test(t), 'mock notice'); await A.page.locator('.modal [data-close]').first().click();
+    const t = await A.page.$eval('.modal', e => e.innerText); expect(/Jitsi|تجريبي/.test(t), 'provider notice shown'); await A.page.locator('.modal [data-close]').first().click();
   });
   await step('A4 my tasks → update progress → evidence → complete', async () => {
     await A.go('#/tasks'); await A.page.locator('tr.link', { hasText: 'زيارة 10 عملاء' }).click(); await A.page.waitForSelector('#prog');
@@ -159,6 +159,42 @@ async function main() {
     const id = boardUrl.match(/\d+/)[0]; const api = await S2.page.evaluate(i => fetch('/api/meetings/' + i).then(x => x.status), id); expect(api === 404, 'API 404'); await S2.shot('D2_denied');
   });
   await S2.ctx.close();
+
+  console.log('Scenario E — Administration, KPI lifecycle, online meeting');
+  const R = await as('rana');
+  await step('E1 archive member with work reassignment, then restore', async () => {
+    await R.go('#/admin/employees'); await R.page.locator('tr', { hasText: 'نورا عاطف' }).locator('[data-act="archive"]').click();
+    await R.page.waitForSelector('.modal [name=reassign_to]'); const v = await R.page.$$eval('.modal [name=reassign_to] option', os => os.find(o => o.textContent.includes('مها رضوان')).value);
+    await R.page.selectOption('.modal [name=reassign_to]', v); await R.page.fill('.modal [name=reason]', 'اختبار الأرشفة'); await modalOk(R.page); await R.page.waitForTimeout(600);
+    await R.go('#/admin/employees?status=archived'); expect((await text(R.page)).includes('نورا عاطف'), 'in archive'); await R.shot('E1_archive');
+    await R.page.locator('tr', { hasText: 'نورا عاطف' }).locator('[data-act="restore"]').click(); await R.page.locator('.modal [data-ok]').click(); await R.page.waitForTimeout(600);
+    await R.go('#/admin/employees'); expect((await text(R.page)).includes('نورا عاطف'), 'restored');
+  });
+  await step('E2 add a member, rename it, then delete it', async () => {
+    await R.page.locator('[data-act="new"]').click(); await R.page.waitForSelector('.modal [name=name]');
+    await R.page.fill('.modal [name=name]', 'عضو تجريبي'); await R.page.fill('.modal [name=emp_no]', 'E888'); await R.page.fill('.modal [name=job_title]', 'محلل'); await R.page.fill('.modal [name=email]', 'e888@fasttrade.demo');
+    const org = await R.page.$eval('.modal [name=org_unit_id] option:nth-child(3)', o => o.value); await R.page.selectOption('.modal [name=org_unit_id]', org); await modalOk(R.page); await R.page.waitForTimeout(600);
+    await R.page.locator('tr', { hasText: 'عضو تجريبي' }).locator('[data-act="edit"]').click(); await R.page.waitForSelector('.modal [name=name]'); await R.page.fill('.modal [name=name]', 'عضو تجريبي معدّل'); await modalOk(R.page); await R.page.waitForTimeout(600);
+    expect((await text(R.page)).includes('عضو تجريبي معدّل'), 'renamed');
+    await R.page.locator('tr', { hasText: 'عضو تجريبي معدّل' }).locator('[data-act="del"]').click(); await R.page.locator('.modal [data-ok]').click(); await R.page.waitForTimeout(600);
+    expect(!(await text(R.page)).includes('عضو تجريبي معدّل'), 'deleted');
+  });
+  await R.ctx.close();
+  const O2 = await as('omar');
+  await step('E3 archive a KPI and restore it', async () => {
+    await O2.go('#/kpis'); await O2.page.locator('tr.link', { hasText: 'معدل تحويل العروض' }).click(); await O2.page.waitForSelector('[data-act="archive"]');
+    await O2.page.locator('[data-act="archive"]').click(); await O2.page.locator('.modal [data-ok]').click(); await O2.page.waitForSelector('text=هذا المؤشر مؤرشف'); await O2.shot('E3_kpi_archived');
+    await O2.page.locator('[data-act="restore"]').click(); await O2.page.waitForSelector('[data-act="archive"]');
+  });
+  await O2.ctx.close();
+  const S3 = await as('sami');
+  await step('E4 create online meeting with a real Jitsi link', async () => {
+    await S3.go('#/meetings/new'); await S3.page.fill('[name=title]', 'اختبار اجتماع أونلاين'); await S3.page.selectOption('[name=mode]', 'online'); await S3.page.selectOption('[name=provider]', 'jitsi');
+    await S3.page.fill('[name=objective]', 'اختبار الصوت والصورة'); await S3.page.click('button[type=submit]'); await S3.page.waitForURL(/meetings\/\d+/); await S3.page.waitForSelector('.tabs');
+    await S3.page.locator('.tabs button[data-tab="overview"]').click(); await S3.page.waitForSelector('text=رابط فعلي');
+    const href = await S3.page.$eval('a[href^="https://meet.jit.si/"]', a => a.href); expect(/meet\.jit\.si\/FastTrade-/.test(href), 'jitsi link'); await S3.shot('E4_jitsi');
+  });
+  await S3.ctx.close();
 
   console.log('Mobile');
   const MB = await as('mahmoud', true);

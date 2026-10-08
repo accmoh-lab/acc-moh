@@ -44,8 +44,10 @@ function prepState(m) {
 }
 function canJoin(user, m, parts) {
   if (!['online', 'hybrid'].includes(m.mode) || !m.url) return false;
+  // القائد والسكرتير يستطيعان فتح الرابط في أي وقت قبل الإغلاق (للتجهيز واختبار الصوت والصورة)
+  if ((m.leader_id === user.id || m.secretary_id === user.id) && !['approved', 'closed', 'cancelled'].includes(m.status)) return true;
   if (!['preparation_published', 'ready', 'live'].includes(m.status)) return false;
-  if (!(parts.has(user.id) || m.leader_id === user.id || m.secretary_id === user.id)) return false;
+  if (!parts.has(user.id)) return false;
   const start = meetingStart(m); const now = nowDate();
   return m.status === 'live' || (now >= new Date(start - 30 * 60000) && now <= new Date(start.getTime() + (m.duration_min + 60) * 60000));
 }
@@ -55,7 +57,7 @@ function listRow(user, m, parts) {
     id: m.id, code: m.code, title: m.title, type: m.type, status: m.status, status_ar: STATUS_AR[m.status], mode: m.mode, provider: m.provider,
     meeting_date: m.meeting_date, start_time: m.start_time, duration_min: m.duration_min, location: m.location,
     leader_id: m.leader_id, leader_name: empName(m.leader_id), confidentiality: m.confidentiality,
-    org_name: orgName(m.dept_id || m.bu_id || m.company_id), prep_state: prepState(m), prep_released: !!m.prep_released_at,
+    org_name: orgName(m.dept_id || m.bu_id || m.company_id), prep_state: prepState(m), provider_label: integ.providerLabel(m), link_kind: integ.linkKind(m.url), prep_released: !!m.prep_released_at,
     recurrence: m.recurrence, series_id: m.series_id, participants_count: db.get('SELECT COUNT(*) n FROM meeting_participants WHERE meeting_id = ?', m.id).n,
     agenda_count: db.get('SELECT COUNT(*) n FROM agenda_items WHERE meeting_id = ?', m.id).n,
     my_invitation: mine?.invitation || null, is_leader: m.leader_id === user.id, is_secretary: m.secretary_id === user.id,
@@ -86,10 +88,12 @@ const SPEC = {
   title: 'str:req', type: 'enum:req:department|business_unit|management|cross_functional|committee|board',
   company_id: 'int', bu_id: 'int', dept_id: 'int', leader_id: 'int', secretary_id: 'int',
   meeting_date: 'date:req', start_time: 'time:req', duration_min: 'int', location: 'str', mode: 'enum:req:in_person|online|hybrid',
-  provider: 'enum:opt:none|teams|google_meet', url: 'str', objective: 'str', required_preparation: 'str',
+  provider: 'enum:opt:none|teams|google_meet|jitsi', url: 'str', objective: 'str', required_preparation: 'str',
   confidentiality: 'enum:opt:normal|confidential|board', recurrence: 'enum:opt:none|weekly|monthly',
 };
 function validateMeeting(user, d, existing) {
+  // Jitsi: نولّد رابطًا فعليًا ونخزن المزوّد كـnone (الرابط نفسه يحدد النوع)
+  if (d.provider === 'jitsi') { if (['online', 'hybrid'].includes(d.mode) && (!d.url || integ.linkKind(d.url) !== 'jitsi')) d.url = integ.createJitsi({ code: existing?.code }).url; d.provider = 'none'; }
   if (!(d.duration_min > 0)) throw bad('مدة الاجتماع يجب أن تكون أكبر من صفر.', { duration_min: 'مدة غير صحيحة' });
   if (['online', 'hybrid'].includes(d.mode) && d.provider === 'none' && !d.url) throw bad('الاجتماع Online/Hybrid يحتاج مزوّد اجتماعات أو رابطًا.', { provider: 'اختر المزوّد' });
   if (d.url && !/^https:\/\/[^\s]+$/.test(d.url)) throw bad('رابط الاجتماع يجب أن يبدأ بـ https://', { url: 'رابط غير صحيح' });
@@ -438,15 +442,20 @@ H.post('/api/meetings/:id/next-occurrence', ({ user, params }) => {
 H.get('/api/meetings/:id/join', ({ user, params }) => {
   const m = loadMeeting(user, params.id);
   const j = canJoin(user, m, rbac.participantSet(m.id)) ? integ.joinInfo(m) : null;
-  if (!j) throw conflict('الانضمام غير متاح الآن: يفتح قبل الموعد بـ30 دقيقة للمدعوين في الاجتماعات Online/Hybrid.', 'NOT_JOINABLE');
+  if (!j) throw conflict(m.url ? 'الانضمام يفتح للمدعوين قبل الموعد بـ30 دقيقة، بعد نشر حزمة التحضير.' : 'لا يوجد رابط للاجتماع بعد. يضيفه القائد من صفحة الاجتماع.', 'NOT_JOINABLE');
   return j;
 });
-H.post('/api/meetings/:id/online-link', ({ user, params }) => {
+H.post('/api/meetings/:id/online-link', ({ user, params, body }) => {
   const m = loadMeeting(user, params.id, { edit: true });
-  if (!['online', 'hybrid'].includes(m.mode) || m.provider === 'none') throw bad('اختر وضع Online/Hybrid ومزوّد اجتماعات أولًا.');
-  const r = integ.createOnlineMeeting(m.provider, m);
-  db.update('meetings', m.id, { url: r.url, updated_at: nowIso() });
-  audit.log(user.id, 'meeting', m.id, 'mock_link', 'url', m.url, r.url);
+  if (!EDITABLE.has(m.status) && m.status !== 'live') throw conflict('لا يمكن تغيير رابط الاجتماع بعد انتهائه.');
+  const kind = body.kind || 'jitsi';
+  let r;
+  if (kind === 'jitsi') r = integ.createJitsi(m);
+  else { if (m.provider === 'none') throw bad('اختر مزوّد Teams أو Google Meet أولًا.'); r = integ.createOnlineMeeting(m.provider, m); }
+  db.update('meetings', m.id, { url: r.url, mode: m.mode === 'in_person' ? 'hybrid' : m.mode, updated_at: nowIso() });
+  audit.log(user.id, 'meeting', m.id, kind === 'jitsi' ? 'jitsi_link' : 'mock_link', 'url', m.url, r.url);
+  if (m.status !== 'draft') for (const p of db.all('SELECT employee_id FROM meeting_participants WHERE meeting_id = ?', m.id))
+    if (p.employee_id !== user.id) notify.send(p.employee_id, 'meeting_invitation', `رابط الاجتماع جاهز: ${m.title}`, 'يمكنك الانضمام من صفحة الاجتماع عند الموعد.', `#/meetings/${m.id}`, `link:${m.id}:${r.url}`);
   return r;
 });
 H.get('/api/meetings/:id/ics', ({ user, params }) => {

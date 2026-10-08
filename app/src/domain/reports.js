@@ -46,7 +46,7 @@ const REPORTS = {
   } },
   kpi_performance: { title: 'أداء مؤشرات KPI', access: () => true, run(u, f) {
     const key = f.period;
-    const rows = db.all(`SELECT k.* FROM kpis k WHERE ${rbac.kpiVisibilitySql(u)} ORDER BY k.level, k.code LIMIT 500`);
+    const rows = db.all(`SELECT k.* FROM kpis k WHERE ${rbac.kpiVisibilitySql(u)} AND k.approval_status <> 'retired' ORDER BY k.level, k.code LIMIT 500`);
     return { cols: [C('code', 'الرمز'), C('name', 'المؤشر'), C('org', 'الوحدة'), C('period', 'الفترة'), C('target', 'المستهدف'), C('actual', 'الفعلي'), C('achievement', 'الإنجاز %'), C('status', 'الحالة'), C('quality', 'جودة البيانات')],
       rows: rows.map(k => { const pk = key || kpis.dueKey(k.frequency); const r = kpiEngine.getResult(k.id, pk); return { code: k.code, name: k.name, org: rbac.orgs().get(k.org_unit_id)?.name || 'موظف', period: pk, target: r?.target ?? k.target, actual: r?.actual ?? null, achievement: r?.achievement ?? null, status: r?.status || 'missing', quality: r?.data_quality || 'missing' }; }) };
   } },

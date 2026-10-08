@@ -76,10 +76,12 @@ H.get('/api/employees', ({ user, query }) => {
   let rows = db.all('SELECT * FROM employees WHERE deleted_at IS NULL ORDER BY emp_no');
   if (!(user.isAdmin || user.isHR)) rows = rows.filter(e => rbac.canSeeEmployee(user, e));
   if (query.q) rows = rows.filter(e => (e.name + e.emp_no + e.email).toLowerCase().includes(query.q.toLowerCase()));
-  if (query.active === '1') rows = rows.filter(e => e.active);
+  if (query.active === '1' || query.status === 'active') rows = rows.filter(e => e.active);
+  if (query.status === 'archived') rows = rows.filter(e => !e.active);
   if (query.dept_id) rows = rows.filter(e => String(e.dept_id) === query.dept_id);
   const org = rbac.orgs();
-  return rows.map(e => ({ ...empRow(e), org_name: org.get(e.org_unit_id)?.name, manager_name: rows.find(x => x.id === e.manager_id)?.name || null }));
+  const names = new Map(db.all('SELECT id, name FROM employees').map(r => [r.id, r.name]));
+  return rows.map(e => ({ ...empRow(e), org_name: org.get(e.org_unit_id)?.name, manager_name: names.get(e.manager_id) || null }));
 });
 H.get('/api/employees/:id', ({ user, params }) => {
   const e = db.get('SELECT * FROM employees WHERE id = ? AND deleted_at IS NULL', params.id);
@@ -109,7 +111,7 @@ H.put('/api/employees/:id', ({ user, params, body }) => {
   const d = need({ ...e, ...body }, EMP_SPEC); checkEmp(d, e.id);
   if (e.active && d.active === 0) {
     const open = db.get(`SELECT COUNT(*) n FROM tasks WHERE owner_id = ? AND status NOT IN ('completed','cancelled') AND deleted_at IS NULL`, e.id).n;
-    const kpis = db.get('SELECT COUNT(*) n FROM kpis WHERE (owner_id = ? OR data_owner_id = ?) AND deleted_at IS NULL', e.id, e.id).n;
+    const kpis = db.get(`SELECT COUNT(*) n FROM kpis WHERE (owner_id = ? OR data_owner_id = ?) AND deleted_at IS NULL AND approval_status <> 'retired'`, e.id, e.id).n;
     if (open || kpis) throw conflict(`لا يمكن إيقاف الموظف: لديه ${open} مهمة مفتوحة و${kpis} مؤشر KPI مسؤول عنه. أعد إسنادها أولًا.`, 'HAS_OPEN_WORK');
     auth.revokeAll(e.id);
   }
@@ -135,6 +137,112 @@ H.put('/api/employees/:id/access', ({ user, params, body }) => {
     }
     if (d.system_role !== e.system_role || d.can_login === 0) auth.revokeAll(e.id);   // تطبيق الصلاحيات الجديدة فورًا
     if (body.new_password) { auth.checkPolicy(body.new_password); db.update('employees', e.id, { password_hash: auth.hashPassword(body.new_password) }); audit.log(user.id, 'employee_access', e.id, 'password_set'); }
+  });
+  return { ok: true };
+});
+
+// ----- الهيكل التنظيمي: تعديل الاسم وحذف الوحدات الفارغة -----
+H.put('/api/org/units/:id', ({ user, params, body }) => {
+  rbac.requireRole(user, 'system_admin', 'hr_admin');
+  const o = db.get('SELECT * FROM org_units WHERE id = ? AND deleted_at IS NULL', params.id); if (!o) throw notFound();
+  const d = need({ ...o, ...body }, { name: 'str:req', name_en: 'str', currency: 'str' });
+  if (d.currency && !db.get('SELECT 1 x FROM fx_rates WHERE currency = ?', d.currency)) throw bad('العملة غير معرّفة.');
+  audit.diff(user.id, 'org_unit', o.id, o, d, ['name', 'currency']);
+  db.update('org_units', o.id, { name: d.name, name_en: d.name_en, currency: d.currency || o.currency, updated_at: nowIso() });
+  rbac.invalidateOrg();
+  return { ok: true };
+});
+H.del('/api/org/units/:id', ({ user, params }) => {
+  rbac.requireRole(user, 'system_admin', 'hr_admin');
+  const o = db.get('SELECT * FROM org_units WHERE id = ? AND deleted_at IS NULL', params.id); if (!o) throw notFound();
+  const used = db.get(`SELECT (SELECT COUNT(*) FROM org_units WHERE parent_id = ? AND deleted_at IS NULL) + (SELECT COUNT(*) FROM employees WHERE org_unit_id = ?)
+    + (SELECT COUNT(*) FROM kpis WHERE org_unit_id = ?) + (SELECT COUNT(*) FROM financial_targets WHERE org_unit_id = ?) n`, o.id, o.id, o.id, o.id).n;
+  if (used) throw conflict('لا يمكن حذف الوحدة: تحتوي وحدات فرعية أو موظفين أو مؤشرات أو أهداف. انقلها أولًا.', 'IN_USE');
+  db.update('org_units', o.id, { deleted_at: nowIso(), updated_at: nowIso() });
+  rbac.invalidateOrg(); audit.log(user.id, 'org_unit', o.id, 'delete', 'name', o.name, null);
+  return { ok: true };
+});
+
+// ----- الأرشفة والاستعادة والحذف للموظفين -----
+function workload(id) {
+  const n = (sql, ...p) => db.get(sql, ...p).n;
+  return {
+    open_tasks: n(`SELECT COUNT(*) n FROM tasks WHERE owner_id = ? AND status NOT IN ('completed','cancelled') AND deleted_at IS NULL`, id),
+    reviews: n(`SELECT COUNT(*) n FROM tasks WHERE reviewer_id = ? AND status NOT IN ('completed','cancelled') AND deleted_at IS NULL`, id),
+    kpis: n(`SELECT COUNT(*) n FROM kpis WHERE (owner_id = ? OR data_owner_id = ?) AND deleted_at IS NULL AND approval_status <> 'retired'`, id, id),
+    initiatives: n(`SELECT COUNT(*) n FROM initiatives WHERE owner_id = ? AND status NOT IN ('completed','cancelled') AND deleted_at IS NULL`, id),
+    meetings_led: n(`SELECT COUNT(*) n FROM meetings WHERE leader_id = ? AND status IN ('draft','preparation','preparation_published','ready') AND deleted_at IS NULL`, id),
+    reports: n(`SELECT COUNT(*) n FROM employees WHERE manager_id = ? AND active = 1 AND deleted_at IS NULL`, id),
+  };
+}
+const totalWork = w => Object.values(w).reduce((a, b) => a + b, 0);
+function loadEmpForAdmin(user, id) {
+  rbac.requireRole(user, 'system_admin', 'hr_admin');
+  const e = db.get('SELECT * FROM employees WHERE id = ? AND deleted_at IS NULL', id); if (!e) throw notFound('الموظف غير موجود.');
+  if (e.id === user.id) throw forbidden('لا يمكنك تنفيذ هذا الإجراء على حسابك.');
+  return e;
+}
+H.get('/api/employees/:id/workload', ({ user, params }) => { const e = loadEmpForAdmin(user, params.id); return workload(e.id); });
+H.post('/api/employees/:id/archive', ({ user, params, body }) => {
+  const e = loadEmpForAdmin(user, params.id);
+  if (!e.active) throw conflict('الموظف مؤرشف بالفعل.');
+  const w = workload(e.id);
+  const to = body.reassign_to ? db.get('SELECT * FROM employees WHERE id = ? AND active = 1 AND deleted_at IS NULL', body.reassign_to) : null;
+  if (body.reassign_to && (!to || to.id === e.id)) throw bad('الموظف البديل غير صحيح أو غير نشط.', { reassign_to: 'غير صحيح' });
+  if (totalWork(w) && !to) throw new (require('../util').HttpError)(409, 'لدى الموظف أعمال مفتوحة. اختر موظفًا بديلًا لنقلها إليه قبل الأرشفة.', 'HAS_OPEN_WORK', w);
+  db.tx(() => {
+    if (to) {
+      const why = `أرشفة ${e.name}`;
+      for (const t of db.all(`SELECT id FROM tasks WHERE owner_id = ? AND status NOT IN ('completed','cancelled') AND deleted_at IS NULL`, e.id)) {
+        db.update('tasks', t.id, { owner_id: to.id, company_id: to.company_id, bu_id: to.bu_id, dept_id: to.dept_id, updated_at: nowIso() });
+        db.insert('task_events', { task_id: t.id, actor_id: user.id, action: 'owner_changed', note: `${why} — نُقلت إلى ${to.name}`, created_at: nowIso() });
+        audit.log(user.id, 'task', t.id, 'update', 'owner_id', e.id, to.id, why);
+      }
+      db.run(`UPDATE tasks SET reviewer_id = ?, updated_at = ? WHERE reviewer_id = ? AND status NOT IN ('completed','cancelled')`, to.id === e.id ? null : to.id, nowIso(), e.id);
+      db.run(`UPDATE tasks SET reviewer_id = NULL WHERE reviewer_id = owner_id`);
+      db.run(`UPDATE kpis SET owner_id = ?, updated_at = ? WHERE owner_id = ? AND approval_status <> 'retired'`, to.id, nowIso(), e.id);
+      db.run(`UPDATE kpis SET data_owner_id = ?, updated_at = ? WHERE data_owner_id = ? AND approval_status <> 'retired'`, to.id, nowIso(), e.id);
+      db.run(`UPDATE initiatives SET owner_id = ?, updated_at = ? WHERE owner_id = ? AND status NOT IN ('completed','cancelled')`, to.id, nowIso(), e.id);
+      for (const m of db.all(`SELECT id FROM meetings WHERE leader_id = ? AND status IN ('draft','preparation','preparation_published','ready')`, e.id)) {
+        db.update('meetings', m.id, { leader_id: to.id, updated_at: nowIso() });
+        db.run('INSERT OR IGNORE INTO meeting_participants(meeting_id, employee_id, invitation) VALUES (?,?,?)', m.id, to.id, 'accepted');
+      }
+      db.run('UPDATE employees SET manager_id = ?, updated_at = ? WHERE manager_id = ? AND id <> ?', to.id, nowIso(), e.id, to.id);
+      audit.log(user.id, 'employee', e.id, 'reassign_work', 'reassign_to', null, to.id, JSON.stringify(w));
+    }
+    db.update('employees', e.id, { active: 0, can_login: 0, updated_at: nowIso() });
+    auth.revokeAll(e.id);
+    audit.log(user.id, 'employee', e.id, 'archive', 'active', 1, 0, body.reason || null);
+  });
+  return { ok: true, moved: to ? w : null };
+});
+H.post('/api/employees/:id/restore', ({ user, params, body }) => {
+  const e = loadEmpForAdmin(user, params.id);
+  if (e.active) throw conflict('الموظف نشط بالفعل.');
+  db.update('employees', e.id, { active: 1, can_login: e.password_hash ? 1 : 0, failed_logins: 0, locked_until: null, updated_at: nowIso() });
+  audit.log(user.id, 'employee', e.id, 'restore', 'active', 0, 1, body.reason || null);
+  return { ok: true };
+});
+// الحذف النهائي مسموح فقط لموظف بلا أي سجل (أُضيف بالخطأ مثلًا). غير ذلك: أرشفة للحفاظ على التاريخ.
+H.del('/api/employees/:id', ({ user, params }) => {
+  const e = loadEmpForAdmin(user, params.id);
+  const refs = db.get(`SELECT
+    (SELECT COUNT(*) FROM tasks WHERE owner_id = :i OR reviewer_id = :i OR created_by = :i) + (SELECT COUNT(*) FROM task_contributors WHERE employee_id = :i)
+    + (SELECT COUNT(*) FROM task_evidence WHERE submitted_by = :i) + (SELECT COUNT(*) FROM task_events WHERE actor_id = :i)
+    + (SELECT COUNT(*) FROM meetings WHERE leader_id = :i OR secretary_id = :i OR created_by = :i) + (SELECT COUNT(*) FROM meeting_participants WHERE employee_id = :i)
+    + (SELECT COUNT(*) FROM decisions WHERE owner_id = :i OR created_by = :i) + (SELECT COUNT(*) FROM minutes WHERE approved_by = :i)
+    + (SELECT COUNT(*) FROM kpis WHERE owner_id = :i OR data_owner_id = :i OR reviewer_id = :i OR employee_id = :i)
+    + (SELECT COUNT(*) FROM kpi_results WHERE updated_by = :i OR verified_by = :i) + (SELECT COUNT(*) FROM financial_targets WHERE updated_by = :i)
+    + (SELECT COUNT(*) FROM initiatives WHERE owner_id = :i OR sponsor_id = :i)
+    + (SELECT COUNT(*) FROM assessments WHERE employee_id = :i OR assessed_by = :i OR approved_by = :i) + (SELECT COUNT(*) FROM assessment_stages WHERE actor_id = :i)
+    + (SELECT COUNT(*) FROM checkins WHERE employee_id = :i) + (SELECT COUNT(*) FROM period_adjustments WHERE created_by = :i)
+    + (SELECT COUNT(*) FROM scorecard_configs WHERE updated_by = :i) + (SELECT COUNT(*) FROM performance_periods WHERE locked_by = :i)
+    + (SELECT COUNT(*) FROM attachments WHERE uploaded_by = :i) + (SELECT COUNT(*) FROM employees WHERE manager_id = :i OR functional_manager_id = :i) n`.replace(/:i/g, String(Number(e.id)))).n;
+  if (refs) throw conflict(`لا يمكن حذف الموظف نهائيًا لأن له ${refs} سجلًا مرتبطًا (اجتماعات، مهام، مؤشرات أو تقييمات). استخدم الأرشفة للحفاظ على التاريخ.`, 'HAS_HISTORY');
+  db.tx(() => {
+    for (const t of ['employee_grants', 'sessions', 'password_resets', 'notifications', 'notification_prefs']) db.run(`DELETE FROM ${t} WHERE employee_id = ?`, e.id);
+    db.run('DELETE FROM employees WHERE id = ?', e.id);
+    audit.log(user.id, 'employee', e.id, 'delete', 'emp_no', `${e.emp_no} — ${e.name}`, null);
   });
   return { ok: true };
 });

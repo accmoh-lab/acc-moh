@@ -61,7 +61,7 @@ async function createForm(ctx) {
     ${field('وقت البدء', '<input type="time" name="start_time" value="10:00">', { req: true })}
     ${field('المدة المتوقعة (دقيقة)', '<input type="number" name="duration_min" value="60" min="5" step="5">')}
     ${field('وضع الاجتماع', `<select name="mode">${opts(Object.entries(L.mode), 'in_person')}</select>`)}
-    ${field('مزوّد الاجتماع Online', `<select name="provider">${opts([['none', 'بدون'], ['teams', 'Microsoft Teams'], ['google_meet', 'Google Meet']], 'none')}</select>`, { hint: 'الربط الحالي Mock: يمكن توليد رابط تجريبي بعد الإنشاء أو لصق رابط حقيقي' })}
+    ${field('مزوّد الاجتماع Online', `<select name="provider">${opts([['jitsi', 'Jitsi Meet — رابط فعلي تلقائي (للتجربة)'], ['none', 'بدون / سألصق رابطًا جاهزًا'], ['teams', 'Microsoft Teams (رابط تجريبي Mock)'], ['google_meet', 'Google Meet (رابط تجريبي Mock)']], 'jitsi')}</select>`, { hint: 'Jitsi ينشئ اجتماعًا حقيقيًا فورًا. ولاستخدام Teams أو Zoom الحقيقي: اختر «بدون» والصق الرابط' })}
     ${field('رابط الاجتماع', '<input name="url" dir="ltr" placeholder="https://">')}
     ${field('المكان', '<input name="location" placeholder="مثال: قاعة الاجتماعات الرئيسية">')}
     ${field('القائد / رئيس الاجتماع', `<select name="leader_id">${empOpts(dir, me.id)}</select>`, { req: true })}
@@ -146,7 +146,8 @@ async function detail(ctx) {
     republish: async () => { await api(`/meetings/${m.id}/prep/republish`, { method: 'POST' }); toast('أُعيد نشر حزمة التحضير'); await reload('pack'); },
     nextocc: async () => { const r = await api(`/meetings/${m.id}/next-occurrence`, { method: 'POST' }); toast('تم إنشاء الموعد التالي في السلسلة'); location.hash = `#/meetings/${r.id}`; },
     rsvp: async b => { await api(`/meetings/${m.id}/rsvp`, { method: 'PUT', body: { invitation: b.dataset.v } }); toast(b.dataset.v === 'accepted' ? 'تم تأكيد حضورك' : 'تم تسجيل اعتذارك'); await reload(); },
-    mocklink: async () => { const r = await api(`/meetings/${m.id}/online-link`, { method: 'POST' }); toast(r.notice); await reload('overview'); },
+    mocklink: async () => { const r = await api(`/meetings/${m.id}/online-link`, { method: 'POST', body: { kind: 'mock' } }); toast(r.notice); await reload('overview'); },
+    jitsi: async () => { if (m.url && !await confirmBox('رابط جديد', 'سيُستبدل الرابط الحالي ويُبلَّغ المشاركون بالرابط الجديد.', 'إنشاء')) return; const r = await api(`/meetings/${m.id}/online-link`, { method: 'POST', body: { kind: 'jitsi' } }); toast(r.notice); await reload('overview'); },
     edit: () => editMeeting(m, reload),
     addAgenda: () => agendaModal(m, null, reload),
     editAgenda: b => agendaModal(m, m.agenda.find(a => a.id === Number(b.dataset.id)), reload),
@@ -163,7 +164,7 @@ async function detail(ctx) {
   });
 }
 async function doJoin(m) {
-  try { const j = await api(`/meetings/${m.id}/join`); const mm = modal({ title: 'الانضمام للاجتماع', body: `<p>سيُفتح الاجتماع في ${esc(j.provider === 'teams' ? 'Microsoft Teams' : j.provider === 'google_meet' ? 'Google Meet' : 'المتصفح')}.</p>${j.mock ? `<div class="alert mockbar small">${esc(j.notice)}</div>` : ''}<p class="small" dir="ltr" style="word-break:break-all">${esc(j.url)}</p>`, footer: `<a class="btn primary" href="${esc(j.url)}" target="_blank" rel="noopener noreferrer">فتح الرابط</a><button class="btn" data-close>إغلاق</button>` }); }
+  try { const j = await api(`/meetings/${m.id}/join`); const mm = modal({ title: 'الانضمام للاجتماع', body: `<p>سيُفتح الاجتماع في ${esc(j.provider_label || 'المتصفح')} في نافذة جديدة.</p>${j.mock ? `<div class="alert mockbar small">${esc(j.notice)}</div>` : j.kind === 'jitsi' ? '<div class="alert info small">اسمح للمتصفح باستخدام الكاميرا والميكروفون. أول من يدخل قد يُطلب منه تسجيل الدخول (Google أو GitHub) ليصبح منظِّم الاجتماع. على الهاتف يمكن استخدام تطبيق Jitsi Meet.</div>' : ''}<p class="small" dir="ltr" style="word-break:break-all">${esc(j.url)}</p>`, footer: `<a class="btn primary" href="${esc(j.url)}" target="_blank" rel="noopener noreferrer">فتح الرابط</a><button class="btn" data-close>إغلاق</button>` }); }
   catch (e) { toast(e.message, 'err'); }
 }
 function overview(m) {
@@ -174,9 +175,9 @@ function overview(m) {
     ${m.previous && (m.previous.decisions.length || m.previous.actions.length) ? `<div class="card"><header><h3>متابعة من الاجتماعات السابقة</h3></header>${prevBlock(m.previous)}</div>` : ''}
   </div><div class="stack"><div class="card"><dl class="kv">
     <dt>الرمز</dt><dd>${ltr(m.code)}</dd><dt>الموعد</dt><dd>${fdate(m.meeting_date)} · ${ftime(m.start_time)}</dd><dt>المدة</dt><dd>${m.duration_min} دقيقة</dd>
-    <dt>الوضع</dt><dd>${esc(L.mode[m.mode])}${m.provider !== 'none' ? ` · ${m.provider === 'teams' ? 'Microsoft Teams' : 'Google Meet'}` : ''}</dd>
-    ${m.url ? `<dt>الرابط</dt><dd><span class="mock">Mock</span> <span dir="ltr" class="small" style="word-break:break-all">${esc(m.url)}</span></dd>` : ''}
-    ${m.is_editor && ['online', 'hybrid'].includes(m.mode) && m.provider !== 'none' && m.can_edit ? `<dt></dt><dd><button class="btn sm" data-act="mocklink">توليد رابط (Mock)</button></dd>` : ''}
+    <dt>الوضع</dt><dd>${esc(L.mode[m.mode])}${m.provider_label ? ` · ${esc(m.provider_label)}` : ''}</dd>
+    ${m.url ? `<dt>الرابط</dt><dd>${m.link_kind === 'mock' ? '<span class="mock">Mock — لا يفتح اجتماعًا</span>' : m.link_kind === 'jitsi' ? '<span class="pill green nodot">رابط فعلي</span>' : '<span class="pill blue nodot">رابط ملصق</span>'} <span dir="ltr" class="small" style="word-break:break-all;display:block">${esc(m.url)}</span>${m.link_kind !== 'mock' && m.join ? `<a class="btn sm primary" style="margin-top:6px" href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">${icon('video')} فتح الاجتماع</a>` : ''}</dd>` : ''}
+    ${m.is_editor && !['approved', 'closed', 'cancelled'].includes(m.status) ? `<dt></dt><dd class="row" style="gap:6px"><button class="btn sm" data-act="jitsi">${icon('video')} ${m.url ? 'رابط Jitsi جديد' : 'إنشاء رابط Jitsi فعلي'}</button>${m.provider !== 'none' ? '<button class="btn sm ghost" data-act="mocklink">رابط تجريبي (Mock)</button>' : ''}</dd>` : ''}
     <dt>المكان</dt><dd>${esc(m.location) || '—'}</dd><dt>القائد</dt><dd>${esc(m.leader_name)}</dd><dt>السكرتير</dt><dd>${esc(m.secretary_name) || '—'}</dd>
     <dt>الوحدة</dt><dd>${esc(m.dept_name || m.bu_name || m.company_name || (m.type === 'board' ? 'مجلس الإدارة' : '—'))}</dd>
     <dt>الدعوات</dt><dd>${part.length} مشارك · ${acc} قبول</dd>
@@ -269,7 +270,7 @@ function minutesTab(m) {
 
 // ---------- نوافذ ----------
 async function editMeeting(m, reload) {
-  const mm = modal({ title: 'تعديل بيانات الاجتماع', wide: true, body: `<form id="ef"><div class="alert err form-error" hidden></div><div class="form-grid">${field('العنوان', `<input name="title" value="${esc(m.title)}">`, { full: true })}${field('التاريخ', `<input type="date" name="meeting_date" value="${m.meeting_date}">`)}${field('الوقت', `<input type="time" name="start_time" value="${m.start_time}">`)}${field('المدة', `<input type="number" name="duration_min" value="${m.duration_min}">`)}${field('الوضع', `<select name="mode">${opts(Object.entries(L.mode), m.mode)}</select>`)}${field('المزوّد', `<select name="provider">${opts([['none', 'بدون'], ['teams', 'Microsoft Teams'], ['google_meet', 'Google Meet']], m.provider)}</select>`)}${field('الرابط', `<input name="url" dir="ltr" value="${esc(m.url || '')}">`)}${field('المكان', `<input name="location" value="${esc(m.location || '')}">`)}${field('الهدف', `<textarea name="objective">${esc(m.objective || '')}</textarea>`, { full: true })}${field('التحضير المطلوب', `<textarea name="required_preparation">${esc(m.required_preparation || '')}</textarea>`, { full: true })}</div></form>`, footer: '<button class="btn primary" data-ok>حفظ</button><button class="btn" data-close>إلغاء</button>' });
+  const mm = modal({ title: 'تعديل بيانات الاجتماع', wide: true, body: `<form id="ef"><div class="alert err form-error" hidden></div><div class="form-grid">${field('العنوان', `<input name="title" value="${esc(m.title)}">`, { full: true })}${field('التاريخ', `<input type="date" name="meeting_date" value="${m.meeting_date}">`)}${field('الوقت', `<input type="time" name="start_time" value="${m.start_time}">`)}${field('المدة', `<input type="number" name="duration_min" value="${m.duration_min}">`)}${field('الوضع', `<select name="mode">${opts(Object.entries(L.mode), m.mode)}</select>`)}${field('المزوّد', `<select name="provider">${opts([['none', m.link_kind === 'jitsi' ? 'Jitsi Meet (الرابط الحالي)' : 'بدون / رابط ملصق'], ['jitsi', 'Jitsi Meet — رابط فعلي جديد'], ['teams', 'Microsoft Teams (Mock)'], ['google_meet', 'Google Meet (Mock)']], m.provider)}</select>`)}${field('الرابط', `<input name="url" dir="ltr" value="${esc(m.url || '')}">`)}${field('المكان', `<input name="location" value="${esc(m.location || '')}">`)}${field('الهدف', `<textarea name="objective">${esc(m.objective || '')}</textarea>`, { full: true })}${field('التحضير المطلوب', `<textarea name="required_preparation">${esc(m.required_preparation || '')}</textarea>`, { full: true })}</div></form>`, footer: '<button class="btn primary" data-ok>حفظ</button><button class="btn" data-close>إلغاء</button>' });
   mm.$('[data-ok]').onclick = async () => { const f = mm.$('#ef'); const d = readForm(f); try { await api(`/meetings/${m.id}`, { method: 'PUT', body: { ...d, duration_min: Number(d.duration_min) } }); mm.close(); toast('تم الحفظ'); reload('overview'); } catch (e) { showErrors(f, e); } };
 }
 async function agendaModal(m, a, reload) {
@@ -325,7 +326,7 @@ async function live(ctx) {
     const curDec = cur ? m.decisions.filter(d => d.agenda_item_id === cur.id) : []; const curTasks = cur ? m.tasks.filter(t => t.agenda_item_id === cur.id) : [];
     el.innerHTML = `<div class="live-head"><div style="flex:1;min-width:220px"><div class="row small" style="opacity:.85"><span class="live-dot"></span> جارٍ الآن · ${ltr(m.code)}</div><h2>${esc(m.title)}</h2><div class="small" style="opacity:.8">التقدم: ${done} من ${m.agenda.length} بنود · الحضور ${attended}/${m.participants.length}</div></div>
       <div style="text-align:center"><div class="timer" id="timer">00:00</div><div class="tiny" style="opacity:.75">المدة المخططة <bdi class="num">${m.duration_min}</bdi> د</div></div>
-      <div class="row"><a class="btn" style="background:#fff;color:#10193a" href="#/meetings/${m.id}">صفحة الاجتماع</a><button class="btn danger" style="background:#fff" data-act="end">إنهاء الاجتماع</button></div></div>
+      <div class="row">${m.url && m.link_kind !== 'mock' ? `<a class="btn" style="background:#22c55e;color:#06210f;border-color:#22c55e" href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">${icon('video')} فتح الاجتماع Online</a>` : ''}<a class="btn" style="background:#fff;color:#10193a" href="#/meetings/${m.id}">صفحة الاجتماع</a><button class="btn danger" style="background:#fff" data-act="end">إنهاء الاجتماع</button></div></div>
       <div style="margin-top:12px">${'<div class="bar"><i style="width:' + (m.agenda.length ? done / m.agenda.length * 100 : 0) + '%"></i></div>'}</div>
       <div class="live-grid">
         <section class="card"><header><h3>جدول الأعمال</h3></header><div class="agenda">${m.agenda.map(a => `<div class="ag ${a.id === curId ? 'cur' : ''} ${a.status === 'completed' ? 'done' : ''}" data-act="pick" data-id="${a.id}" role="button" tabindex="0"><span class="no"><bdi class="num">${a.seq}</bdi></span><div style="flex:1;min-width:0"><b class="small">${esc(a.topic)}</b><div class="row" style="gap:4px;margin-top:4px">${lp(L.agenda, a.status)}<span class="tiny muted"><bdi class="num">${a.est_min}</bdi> د</span></div></div></div>`).join('')}</div>

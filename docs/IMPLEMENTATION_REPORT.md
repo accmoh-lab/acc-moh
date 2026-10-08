@@ -67,6 +67,7 @@ cd app && npm run seed && DEMO_MODE=1 npm start   # ثم افتح http://localho
 | تفاصيل المهمة (لماذا أُنشئت، التتبع، التقدم، الأدلة، Dependencies، سجل التكرارات، السجل) | Implemented & Tested |
 | KPIs: قائمة حسب المستوى + تفاصيل + رسم الاتجاه + إدخال الفعلي + دورة جودة البيانات + Cascading | Implemented & Tested |
 | تعريف وتعديل KPI (7 أنواع، عتبات، صيغة) | Implemented but Not Fully Tested في الواجهة (مختبر عبر API) |
+| أرشفة واستعادة وحذف KPI (الحذف فقط لمؤشر بلا تاريخ) | Implemented & Tested |
 | الأهداف المالية (مستهدف/فعلي/انحراف، تعدد العملات، اعتماد بفصل المهام) | Implemented & Tested |
 | المبادرات: قائمة + تفاصيل + تحديث | Implemented but Not Fully Tested |
 | أدائي (Calculated / Manager / Final منفصلة + Breakdown + Check-in) | Implemented & Tested |
@@ -79,7 +80,7 @@ cd app && npm run seed && DEMO_MODE=1 npm start   # ثم افتح http://localho
 | مساحة مجلس الإدارة | Implemented & Tested |
 | مركز التقارير (12 تقريرًا + CSV) | Implemented & Tested |
 | الإشعارات + التفضيلات | Implemented & Tested |
-| الإدارة: الموظفون والصلاحيات، الاستيراد/التصدير، التدقيق، الإعدادات، التكاملات | Implemented & Tested |
+| الإدارة: الموظفون والصلاحيات (إضافة، تعديل، أرشفة مع نقل الأعمال، استعادة، حذف محمي)، الهيكل التنظيمي، الاستيراد/التصدير، التدقيق، الإعدادات، التكاملات | Implemented & Tested |
 | البحث الشامل (يحترم الصلاحيات) | Implemented & Tested |
 | الملف الشخصي وتغيير كلمة المرور | Implemented but Not Fully Tested |
 | Mobile: Tab bar سفلي + قائمة جانبية + انضمام وتحديث المهام | Implemented & Tested |
@@ -300,7 +301,9 @@ Integration Layer: app/src/integrations (Adapters بحالة معلنة)
 
 | التكامل | الحالة |
 |---|---|
-| Microsoft Teams / Google Meet | **Mock** — يولّد رابطًا تجريبيًا مع وسم واضح، وزر الانضمام يعرض تنبيهًا بذلك |
+| Jitsi Meet | **Real** — ينشئ رابط اجتماع فعليًا على meet.jit.si بدون حساب أو مفتاح API، وهو الافتراضي للاجتماعات Online |
+| رابط Teams / Zoom / Meet ملصق يدويًا | **Real** — يُعرض كرابط حقيقي أدخله المنظّم |
+| Microsoft Teams / Google Meet (إنشاء تلقائي) | **Mock** — يولّد رابطًا تجريبيًا مع وسم واضح، وزر الانضمام يعرض تنبيهًا بذلك |
 | Email / Push | **Mock** — يُسجَّل في جدول `outbox`، ولا يُرسل شيء فعليًا |
 | تصدير ICS للتقويم | **Real** — ملف قياسي يعمل مع أي برنامج تقويم |
 | MFA (TOTP) / SSO | **Ready but not connected** |

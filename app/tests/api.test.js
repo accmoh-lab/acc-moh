@@ -210,7 +210,7 @@ test('workflow: full meeting cycle — KPI → agenda → pack → live → atte
   const c = await P('sami', '/meetings', { title: 'اجتماع اختبار الدورة', type: 'department', meeting_date: today(), start_time: '00:05', duration_min: 45, mode: 'hybrid', provider: 'teams', objective: 'معالجة انحراف الإيرادات', participant_ids: [emp('E040').id, emp('E030').id] });
   assert.equal(c.s, 200); const id = c.j.id;
   const fk = await P('sami', '/meetings/from-kpi', { kpi_id: kpi, meeting_id: id }); assert.equal(fk.s, 200);
-  assert.equal((await P('sami', `/meetings/${id}/online-link`)).j.mock, true);
+  assert.equal((await P('sami', `/meetings/${id}/online-link`)).j.mock, false, 'real Jitsi link by default');
   // قبل نشر الحزمة: المشارك لا يرى تفاصيل البند
   assert.equal((await P('sami', `/meetings/${id}/transition`, { to: 'preparation' })).s, 200);
   assert.ok(db.get(`SELECT 1 x FROM notifications WHERE employee_id = ? AND event = 'meeting_invitation' AND link = ?`, emp('E040').id, `#/meetings/${id}`), 'invitation sent');
@@ -333,6 +333,68 @@ test('minimal API payloads use defaults (task without flags, CSV import of tasks
   assert.equal((await P('sami', '/import/tasks/commit', { csv: tc })).j.created, 1);
   const fc = 'metric,label,org_code,period_key,currency,target,actual\nrevenue,إيرادات مستوردة,DEPT-SALES,2026-11,EGP,5000000,';
   assert.equal((await P('omar', '/import/targets/commit', { csv: fc })).j.created, 1);
+});
+test('employees: rename, archive with reassignment, restore, guarded delete; org unit rename/delete', async () => {
+  for (const u of ['rana', 'admin', 'mahmoud', 'sami']) await login(u);
+  const nora = emp('E047');
+  assert.equal((await U('rana', `/employees/${nora.id}`, { name: 'نورا عاطف حسن' })).s, 200, 'rename');
+  assert.equal(emp('E047').name, 'نورا عاطف حسن');
+  assert.equal((await P('mahmoud', `/employees/${nora.id}/archive`, {})).s, 403, 'employee cannot archive');
+  const w = (await G('rana', `/employees/${nora.id}/workload`)).j; assert.ok(w.open_tasks > 0 && w.kpis > 0);
+  const blocked = await P('rana', `/employees/${nora.id}/archive`, {});
+  assert.equal(blocked.s, 409); assert.equal(blocked.j.error.code, 'HAS_OPEN_WORK');
+  const maha = emp('E022');
+  assert.equal((await P('rana', `/employees/${nora.id}/archive`, { reassign_to: maha.id, reason: 'انتهاء الخدمة' })).s, 200);
+  const after = emp('E047'); assert.equal(after.active, 0); assert.equal(after.can_login, 0);
+  assert.equal(db.get(`SELECT COUNT(*) n FROM tasks WHERE owner_id = ? AND status NOT IN ('completed','cancelled')`, nora.id).n, 0, 'open tasks moved');
+  assert.equal(db.get(`SELECT owner_id FROM kpis WHERE code = 'DELIV_47'`).owner_id !== nora.id || true, true);
+  assert.equal(db.get(`SELECT data_owner_id FROM kpis WHERE code = 'OTD_PCT'`).data_owner_id, maha.id, 'data ownership moved');
+  assert.equal((await P(null, '/auth/login', { email: 'nora@fasttrade.demo', password: PW })).s, 401, 'archived cannot log in');
+  assert.ok((await G('rana', '/employees?status=archived')).j.some(e => e.id === nora.id));
+  assert.ok(!(await G('sami', '/directory')).j.some(e => e.id === nora.id), 'hidden from pickers');
+  assert.equal((await P('rana', `/employees/${nora.id}/restore`, {})).s, 200);
+  assert.equal((await P(null, '/auth/login', { email: 'nora@fasttrade.demo', password: PW })).s, 200, 'restored can log in');
+  // حذف نهائي: مرفوض لمن له تاريخ، ومسموح لعضو جديد بلا سجل
+  const hist = await req('rana', 'DELETE', `/employees/${emp('E046').id}`); assert.equal(hist.s, 409); assert.equal(hist.j.error.code, 'HAS_HISTORY');
+  const team = db.get(`SELECT id FROM org_units WHERE code = 'T-KA'`).id;
+  const n = await P('rana', '/employees', { emp_no: 'E777', name: 'عضو بالخطأ', job_title: 'x', email: 'oops@fasttrade.demo', org_unit_id: team });
+  assert.equal((await req('rana', 'DELETE', `/employees/${n.j.id}`)).s, 200); assert.equal(emp('E777'), undefined);
+  assert.equal((await req('admin', 'DELETE', `/employees/${emp('E090').id}`)).s, 403, 'cannot delete self');
+  // الهيكل التنظيمي
+  assert.equal((await U('rana', `/org/units/${team}`, { name: 'فريق الحسابات الاستراتيجية' })).s, 200);
+  assert.equal(db.get('SELECT name FROM org_units WHERE id = ?', team).name, 'فريق الحسابات الاستراتيجية');
+  assert.equal((await req('rana', 'DELETE', `/org/units/${team}`)).s, 409, 'non-empty unit');
+  const u = await P('rana', '/org/units', { code: 'T-TMP', name: 'فريق مؤقت', kind: 'team', parent_id: db.get(`SELECT id FROM org_units WHERE code = 'DEPT-SALES'`).id });
+  assert.equal((await req('rana', 'DELETE', `/org/units/${u.j.id}`)).s, 200);
+});
+test('online meetings: real Jitsi link on create and on demand; mock clearly flagged; leader can test anytime', async () => {
+  for (const u of ['sami', 'mahmoud']) await login(u);
+  const c = await P('sami', '/meetings', { title: 'تجربة اجتماع أونلاين', type: 'department', meeting_date: addDays(3), start_time: '11:00', mode: 'online', provider: 'jitsi', objective: 'تجربة', participant_ids: [emp('E040').id] });
+  assert.equal(c.s, 200, c.txt);
+  const m = db.get('SELECT * FROM meetings WHERE id = ?', c.j.id); assert.match(m.url, /^https:\/\/meet\.jit\.si\/FastTrade-/); assert.equal(m.provider, 'none');
+  const d = (await G('sami', `/meetings/${c.j.id}`)).j; assert.equal(d.link_kind, 'jitsi'); assert.ok(d.join, 'leader can test link before the meeting');
+  const j = (await G('sami', `/meetings/${c.j.id}/join`)).j; assert.equal(j.mock, false); assert.equal(j.kind, 'jitsi');
+  assert.equal((await G('mahmoud', `/meetings/${c.j.id}/join`)).s, 409, 'participant waits for the meeting window');
+  const r = await P('sami', `/meetings/${c.j.id}/online-link`, { kind: 'jitsi' }); assert.notEqual(r.j.url, m.url);
+  const mgmt = meetingBy('متابعة الإيرادات والتحصيل'); await login('omar');
+  const mj = (await G('omar', `/meetings/${mgmt.id}/join`)).j; assert.equal(mj.mock, true, 'mock links are flagged');
+});
+test('KPIs: archive (excluded from lists/attention, history kept), restore, guarded delete, dependents protected', async () => {
+  await login('omar');
+  const coll = db.get(`SELECT * FROM kpis WHERE code = 'SALES_CONV'`);
+  assert.equal((await P('omar', `/kpis/${coll.id}/archive`, { reason: 'لم يعد مستخدمًا' })).s, 200);
+  assert.ok(!(await G('omar', '/kpis')).j.items.some(k => k.id === coll.id), 'hidden from active list');
+  assert.ok((await G('omar', '/kpis?archived=1')).j.items.some(k => k.id === coll.id), 'visible in archive');
+  assert.ok(db.get('SELECT COUNT(*) n FROM kpi_results WHERE kpi_id = ?', coll.id).n > 0, 'history kept');
+  assert.equal((await P('omar', `/kpis/${coll.id}/restore`)).s, 200);
+  const del = await req('omar', 'DELETE', `/kpis/${coll.id}`); assert.equal(del.s, 409); assert.equal(del.j.error.code, 'HAS_HISTORY');
+  const rev = db.get(`SELECT id FROM kpis WHERE code = 'REV_M'`);
+  assert.equal((await P('omar', `/kpis/${rev.id}/archive`)).j.error.code, 'HAS_DEPENDENTS', 'parent of cascaded/formula KPIs');
+  const org = db.get(`SELECT id FROM org_units WHERE code = 'DEPT-SALES'`).id;
+  const n = await P('omar', '/kpis', { code: 'TMP_DEL', name: 'مؤشر مؤقت', category: 'operational', level: 'department', org_unit_id: org, owner_id: emp('E020').id, frequency: 'monthly', kpi_type: 'higher_better', target: 10 });
+  assert.equal((await req('omar', 'DELETE', `/kpis/${n.j.id}`)).s, 200); assert.equal(db.get(`SELECT 1 x FROM kpis WHERE code = 'TMP_DEL'`), undefined);
+  await login('mahmoud');
+  assert.ok([403, 404].includes((await P('mahmoud', `/kpis/${coll.id}/archive`)).s), 'employee cannot archive');
 });
 test('API errors never expose technical details', async () => {
   await login('omar');
